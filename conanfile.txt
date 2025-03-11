@@ -1,0 +1,7 @@
+[requires]
+sqlite3/3.40.0
+
+[options]
+sqlite3/*:shared=False
+sqlite3/*:build_executable=False
+sqlite3/*:threadsafe=2
