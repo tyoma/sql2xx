@@ -32,6 +32,17 @@ namespace sql2xx
 			double f;
 		};
 
+		struct type_all_nullable
+		{
+			int z;
+			nullable<int> a;
+			nullable<unsigned int> b;
+			nullable<int64_t> c;
+			nullable<uint64_t> d;
+			nullable<string> e;
+			nullable<double> f;
+		};
+
 		struct type_ided
 		{
 			unsigned int b;
@@ -67,6 +78,18 @@ namespace sql2xx
 			visitor(&type_all::d, "D");
 			visitor(&type_all::e, "E");
 			visitor(&type_all::f, "F");
+		}
+
+		template <typename VisitorT>
+		void describe(VisitorT &&visitor, type_all_nullable *)
+		{
+			visitor(&type_all_nullable::a, "A");
+			visitor(&type_all_nullable::b, "b");
+			visitor(&type_all_nullable::c, "C");
+			visitor(&type_all_nullable::d, "D");
+			visitor(&type_all_nullable::e, "E");
+			visitor(&type_all_nullable::f, "F");
+			visitor(&type_all_nullable::z, "zz");
 		}
 
 		template <typename VisitorT>
@@ -129,6 +152,12 @@ namespace sql2xx
 			assert_equal("CREATE TABLE Baz (b INTEGER NOT NULL,Id INTEGER NOT NULL PRIMARY KEY ASC)", format_create_table<type_ided>("Baz"));
 			assert_equal("CREATE TABLE Baz (b INTEGER NOT NULL,id INTEGER NOT NULL PRIMARY KEY ASC,c INTEGER NOT NULL)", format_create_table<type_inherited>("Baz"));
 		}
-			
+
+
+		test ( FormattingCreateTableWithNullableFieldsProvidesExpectedResult )
+		{
+			assert_equal("CREATE TABLE Bar (A INTEGER,b INTEGER,C INTEGER,D INTEGER,E TEXT,F REAL,zz INTEGER NOT NULL)", format_create_table<type_all_nullable>("Bar"));
+		}
+
 	end_test_suite
 }

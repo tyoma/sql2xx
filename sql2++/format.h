@@ -21,6 +21,7 @@
 #pragma once
 
 #include "expression.h"
+#include "nullable.h"
 #include "types.h"
 
 #include <cstdint>
@@ -72,21 +73,39 @@ namespace sql2xx
 		{	}
 
 		void operator ()(int T::*, const char *column_name)
-		{	append_integer(column_name);	}
+		{	append_integer(column_name); not_null();	}
 
 		void operator ()(unsigned int T::*, const char *column_name)
-		{	append_integer(column_name);	}
+		{	append_integer(column_name); not_null();	}
 
 		void operator ()(std::int64_t T::*, const char *column_name)
-		{	append_integer(column_name);	}
+		{	append_integer(column_name); not_null();	}
 
 		void operator ()(std::uint64_t T::*, const char *column_name)
-		{	append_integer(column_name);	}
+		{	append_integer(column_name); not_null();	}
 
 		void operator ()(std::string T::*, const char *column_name)
-		{	append_text(column_name);	}
+		{	append_text(column_name); not_null();	}
 
 		void operator ()(double T::*, const char *column_name)
+		{	append_real(column_name); not_null();	}
+
+		void operator ()(nullable<int> T::*, const char *column_name)
+		{	append_integer(column_name);	}
+
+		void operator ()(nullable<unsigned int> T::*, const char *column_name)
+		{	append_integer(column_name);	}
+
+		void operator ()(nullable<std::int64_t> T::*, const char *column_name)
+		{	append_integer(column_name);	}
+
+		void operator ()(nullable<std::uint64_t> T::*, const char *column_name)
+		{	append_integer(column_name);	}
+
+		void operator ()(nullable<std::string> T::*, const char *column_name)
+		{	append_text(column_name);	}
+
+		void operator ()(nullable<double> T::*, const char *column_name)
 		{	append_real(column_name);	}
 
 		template <typename U, typename F>
@@ -98,6 +117,7 @@ namespace sql2xx
 
 		std::string &column_definitions;
 		bool first;
+		bool is_nullable;
 
 	private:
 		std::string &append_column(const char *column_name)
@@ -109,14 +129,17 @@ namespace sql2xx
 			return column_definitions;
 		}
 
+		void not_null()
+		{	column_definitions += " NOT NULL";	}
+
 		void append_integer(const char *column_name)
-		{	append_column(column_name) += " INTEGER NOT NULL";	}
+		{	append_column(column_name) += " INTEGER";	}
 
 		void append_text(const char *column_name)
-		{	append_column(column_name) += " TEXT NOT NULL";	}
+		{	append_column(column_name) += " TEXT";	}
 
 		void append_real(const char *column_name)
-		{	append_column(column_name) += " REAL NOT NULL";	}
+		{	append_column(column_name) += " REAL";	}
 	};
 
 
@@ -261,7 +284,7 @@ namespace sql2xx
 	template <typename T>
 	inline void format_create_table(std::string &output, const char *name)
 	{
-		column_definition_format_visitor<T> v = {	output, true	};
+		column_definition_format_visitor<T> v = {	output, true, false	};
 
 		output += "CREATE TABLE ";
 		output += name;
