@@ -22,18 +22,16 @@
 
 namespace sql2xx
 {
-	template <typename T, typename F>
-	struct primary_key
+	enum identity_tag {	identity	};
+	enum primary_key_tag {	primary	};
+	enum unique_tag {	unique	};
+
+	struct nil_stream
 	{
-		F T::*field;
+		template <typename T>
+		nil_stream operator <<(T) const
+		{
+			return nil_stream();
+		}
 	};
-
-
-
-	template <typename T, typename F>
-	inline primary_key<T, F> pk(F T::*field)
-	{
-		primary_key<T, F> result = {	field	};
-		return result;
-	}
 }

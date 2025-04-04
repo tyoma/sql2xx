@@ -25,8 +25,10 @@
 #include "types.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 #include <tuple>
+#include <vector>
 
 namespace sql2xx
 {
@@ -39,6 +41,14 @@ namespace sql2xx
 		template <typename U, typename V>
 		void operator ()(U, V) const
 		{	}
+
+		template <typename TagT, typename U, typename V>
+		void operator ()(TagT, U, V) const
+		{	}
+
+		template <typename TagT>
+		nil_stream operator <<(TagT) const
+		{	return nil_stream();	}
 
 		std::string &table_name;
 	};
@@ -59,9 +69,23 @@ namespace sql2xx
 			first = false;
 		}
 
+		template <typename TagT, typename F>
+		void operator ()(TagT /*tag*/, F field, const char *name)
+		{	(*this)(field, name);	}
+
 		const char *prefix;
 		std::string &table_name;
 		bool first;
+	};
+
+
+	template <typename T>
+	struct fields_collector
+	{
+		template <typename U>
+		fields_collector<T> operator <<(U T::*field) const;
+
+		std::vector<std::string> &columns;
 	};
 
 
@@ -108,14 +132,31 @@ namespace sql2xx
 		void operator ()(nullable<double> T::*, const char *column_name)
 		{	append_real(column_name);	}
 
-		template <typename U, typename F>
-		void operator ()(const primary_key<U, F> &field, const char *column_name)
+		template <typename U>
+		void operator ()(identity_tag, U T::* field, const char *column_name)
 		{
-			(*this)(field.field, column_name);
+			(*this)(field, column_name);
 			column_definitions += " PRIMARY KEY ASC";
 		}
 
+		fields_collector<T> operator <<(unique_tag)
+		{
+			fields_collector<T> collector = {
+				std::get<1>(*constraints.insert(constraints.end(), std::make_tuple("UNIQUE", std::vector<std::string>())))
+			};
+			return collector;
+		}
+
+		fields_collector<T> operator <<(primary_key_tag)
+		{
+			fields_collector<T> collector = {
+				std::get<1>(*constraints.insert(constraints.end(), std::make_tuple("PRIMARY KEY", std::vector<std::string>())))
+			};
+			return collector;
+		}
+
 		std::string &column_definitions;
+		std::list< std::tuple< std::string, std::vector<std::string> > > &constraints;
 		bool first;
 		bool is_nullable;
 
@@ -153,9 +194,9 @@ namespace sql2xx
 				column_name->append(column_name_);
 		}
 
-		template <typename U, typename F2>
-		void operator ()(const primary_key<U, F2> &field, const char *column_name_)
-		{	(*this)(field.field, column_name_);	}
+		template <typename TagT, typename U>
+		void operator ()(TagT, U T::*field, const char *column_name_)
+		{	(*this)(field, column_name_);	}
 
 		template <typename U>
 		void operator ()(U)
@@ -164,6 +205,10 @@ namespace sql2xx
 		template <typename U> 
 		void operator ()(U, const char *) const
 		{	}
+
+		template <typename TagT>
+		nil_stream operator <<(TagT) const
+		{	return nil_stream();	}
 
 		F T::*field;
 		std::string *column_name;
@@ -284,12 +329,40 @@ namespace sql2xx
 	template <typename T>
 	inline void format_create_table(std::string &output, const char *name)
 	{
-		column_definition_format_visitor<T> v = {	output, true, false	};
+		std::list< std::tuple< std::string, std::vector<std::string> > > constraints;
+		column_definition_format_visitor<T> v = {	output, constraints, true, false	};
 
 		output += "CREATE TABLE ";
 		output += name;
 		output += " (";
 		describe<T>(v);
+		std::for_each(std::begin(constraints), std::end(constraints), [&] (const auto &c) {
+			auto &columns = std::get<1>(c);
+			auto first_column = true;
+
+			output += ",";
+			output += std::get<0>(c);
+			output += "(";
+			std::for_each(std::begin(columns), std::end(columns), [&] (const auto &col) {
+				if (!first_column)
+					output += ",";
+				output += col;
+				first_column = false;
+			});
+			output += ")";
+		});
 		output += ")";
+	}
+
+	template <typename T>
+	template <typename U>
+	inline fields_collector<T> fields_collector<T>::operator <<(U T::*field) const
+	{
+		std::string name;
+		format_column_visitor<T, U> v = { field, &name };
+
+		describe<T>(v);
+		columns.emplace_back(name);
+		return *this;
 	}
 }

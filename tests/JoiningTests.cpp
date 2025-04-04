@@ -67,7 +67,7 @@ namespace sql2xx
 			void describe(V &visitor, movie *)
 			{
 				visitor("movies");
-				visitor(pk(&movie::id), "id");
+				visitor(identity, &movie::id, "id");
 				visitor(&movie::name, "name");
 				visitor(&movie::year, "year");
 			}
@@ -76,7 +76,7 @@ namespace sql2xx
 			void describe(V& visitor, actor *)
 			{
 				visitor("actors");
-				visitor(pk(&actor::id), "id");
+				visitor(identity, &actor::id, "id");
 				visitor(&actor::name, "name");
 				visitor(&actor::date_of_birth, "dob");
 			}

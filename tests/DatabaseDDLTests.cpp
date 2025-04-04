@@ -54,6 +54,22 @@ namespace sql2xx
 			int c;
 		};
 
+		struct type_with_unique
+		{
+			int a;
+			int b;
+			string c;
+			nullable<unsigned int> q;
+		};
+
+		struct type_with_primary
+		{
+			int a;
+			int b;
+			string c;
+			string d;
+		};
+
 		template <typename VisitorT>
 		void describe(VisitorT &&visitor, type_a *)
 		{
@@ -96,22 +112,47 @@ namespace sql2xx
 		void describe(VisitorT &&visitor, type_ided *)
 		{
 			visitor(&type_ided::b, "b");
-			visitor(pk(&type_ided::id), "Id");
+			visitor(identity, &type_ided::id, "Id");
 		}
 
 		template <typename VisitorT>
 		void describe(VisitorT &&visitor, type_inherited *)
 		{
 			visitor(&type_inherited::b, "b");
-			visitor(pk(&type_inherited::id), "id");
+			visitor(identity, &type_inherited::id, "id");
 			visitor(&type_inherited::c, "c");
+		}
+
+		template <typename VisitorT>
+		void describe(VisitorT &&visitor, type_with_unique *)
+		{
+			visitor(&type_with_unique::a, "a");
+			visitor(identity, &type_with_unique::b, "b");
+			visitor(&type_with_unique::c, "c");
+			visitor(&type_with_unique::q, "q");
+
+			visitor << sql2xx::unique << &type_with_unique::a << &type_with_unique::c;
+		}
+
+
+		template <typename VisitorT>
+		void describe(VisitorT &&visitor, type_with_primary *)
+		{
+			visitor(&type_with_primary::a, "a");
+			visitor(&type_with_primary::b, "b");
+			visitor(&type_with_primary::c, "c");
+			visitor(&type_with_primary::d, "d");
+
+			visitor << sql2xx::primary << &type_with_primary::a << &type_with_primary::b << &type_with_primary::c;
+			visitor << sql2xx::unique << &type_with_primary::d;
 		}
 
 		template <typename T>
 		string format_columns()
 		{
 			string result;
-			column_definition_format_visitor<T> v = {	result, true	};
+			std::list< std::tuple< std::string, std::vector<std::string> > > constraints;
+			column_definition_format_visitor<T> v = {	result, constraints, true	};
 
 			describe<T>(v);
 			return result;
@@ -134,6 +175,8 @@ namespace sql2xx
 			assert_equal("Foo INTEGER NOT NULL,Bar TEXT NOT NULL", format_columns<type_a>());
 			assert_equal("Lorem TEXT NOT NULL,Ipsum TEXT NOT NULL,Amet INTEGER NOT NULL", format_columns<type_b>());
 			assert_equal("A INTEGER NOT NULL,b INTEGER NOT NULL,C INTEGER NOT NULL,D INTEGER NOT NULL,E TEXT NOT NULL,F REAL NOT NULL", format_columns<type_all>());
+			assert_equal("A INTEGER,b INTEGER,C INTEGER,D INTEGER,E TEXT,F REAL,zz INTEGER NOT NULL", format_columns<type_all_nullable>());
+			assert_equal("a INTEGER NOT NULL,b INTEGER NOT NULL PRIMARY KEY ASC,c TEXT NOT NULL,q INTEGER", format_columns<type_with_unique>());
 		}
 
 
@@ -154,9 +197,17 @@ namespace sql2xx
 		}
 
 
-		test ( FormattingCreateTableWithNullableFieldsProvidesExpectedResult )
+		test( FormattingCreateTableWithConstraintsProvidesExpectedResult )
 		{
-			assert_equal("CREATE TABLE Bar (A INTEGER,b INTEGER,C INTEGER,D INTEGER,E TEXT,F REAL,zz INTEGER NOT NULL)", format_create_table<type_all_nullable>("Bar"));
+			assert_equal("CREATE TABLE Bar ("
+				"a INTEGER NOT NULL,b INTEGER NOT NULL PRIMARY KEY ASC,c TEXT NOT NULL,q INTEGER,"
+				"UNIQUE(a,c)"
+				")", format_create_table<type_with_unique>("Bar"));
+
+			assert_equal("CREATE TABLE Baz ("
+				"a INTEGER NOT NULL,b INTEGER NOT NULL,c TEXT NOT NULL,d TEXT NOT NULL,"
+				"PRIMARY KEY(a,b,c),UNIQUE(d)"
+				")", format_create_table<type_with_primary>("Baz"));
 		}
 
 	end_test_suite

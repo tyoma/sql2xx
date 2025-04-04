@@ -45,9 +45,9 @@ namespace sql2xx
 		void operator ()(std::string U::*field, const char *)
 		{	record.*field = static_cast<const char *>(statement_.get(index++));	}
 
-		template <typename U, typename F>
-		void operator ()(const primary_key<U, F> &field, const char *name)
-		{	(*this)(field.field, name);	}
+		template <typename TagT, typename F>
+		void operator ()(TagT, F field, const char *name)
+		{	(*this)(field, name);	}
 
 		T &record;
 		statement &statement_;
