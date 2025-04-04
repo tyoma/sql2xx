@@ -39,8 +39,8 @@ namespace sql2xx
 		void operator ()(FieldT U::*field, const char *)
 		{	statement_.bind(index++, item.*field);	}
 
-		template <typename U>
-		void operator ()(U, const char *)
+		template <typename TagT, typename U>
+		void operator ()(TagT, U, const char *)
 		{	}
 
 		statement &statement_;
@@ -49,15 +49,15 @@ namespace sql2xx
 	};
 
 	template <typename T>
-	struct primary_key_binder
+	struct identity_binder
 	{
 		template <typename U>
 		void operator ()(U)
 		{	}
 
-		template <typename U, typename F>
-		void operator ()(const primary_key<U, F> &field, const char *)
-		{	item.*field.field = static_cast<F>(sqlite3_last_insert_rowid(&connection));	}
+		template <typename U, typename T2>
+		void operator ()(identity_tag, U T2::*field, const char *)
+		{	item.*field = static_cast<U>(sqlite3_last_insert_rowid(&connection));	}
 
 		template <typename U>
 		void operator ()(U, const char *)
@@ -105,7 +105,7 @@ namespace sql2xx
 	template <typename T, typename T2>
 	inline void bind_identity(sqlite3 &connection, T2 &record)
 	{
-		primary_key_binder<T2> b = {	connection, record	};
+		identity_binder<T2> b = {	connection, record	};
 
 		describe<T>(b);
 	}

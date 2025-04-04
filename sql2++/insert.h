@@ -58,8 +58,8 @@ namespace sql2xx
 		template <typename F>
 		void operator ()(F field, const char *name);
 
-		template <typename U, typename F>
-		void operator ()(const primary_key<U, F> &field, const char *name);
+		template <typename F>
+		void operator ()(identity_tag, F field, const char *name);
 
 	private:
 		std::string _expression_text;
@@ -116,7 +116,7 @@ namespace sql2xx
 	}
 
 	template <typename T>
-	template <typename U, typename F>
-	inline void insert_builder<T>::operator ()(const primary_key<U, F> &, const char *)
+	template <typename F>
+	inline void insert_builder<T>::operator ()(identity_tag, F, const char *)
 	{	}
 }

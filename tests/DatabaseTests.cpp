@@ -179,7 +179,7 @@ namespace sql2xx
 			void describe(VisitorT &visitor, sample_item_3<0> *)
 			{
 				visitor("sample_items_3");
-				visitor(pk(&sample_item_3<0>::id), "MyID");
+				visitor(identity, &sample_item_3<0>::id, "MyID");
 				visitor(&sample_item_3<0>::a, "a");
 				visitor(&sample_item_3<0>::b, "b");
 				visitor(&sample_item_3<0>::c, "c");
@@ -192,7 +192,7 @@ namespace sql2xx
 			void describe(VisitorT &visitor, sample_item_3<1> *)
 			{
 				visitor("other_sample_items_3");
-				visitor(pk(&sample_item_3<1>::id), "MyID");
+				visitor(identity, &sample_item_3<1>::id, "MyID");
 				visitor(&sample_item_3<1>::a, "a");
 				visitor(&sample_item_3<1>::b, "b");
 				visitor(&sample_item_3<1>::c, "c");
@@ -205,7 +205,7 @@ namespace sql2xx
 			void describe(VisitorT &visitor, sample_inherited *)
 			{
 				visitor("Test");
-				visitor(pk(&sample_inherited::id), "myid");
+				visitor(identity, &sample_inherited::id, "myid");
 				visitor(&sample_inherited::b, "bb");
 				visitor(&sample_inherited::c, "cc");
 				visitor(&sample_inherited::comment, "comment");
