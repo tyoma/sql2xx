@@ -54,12 +54,25 @@ namespace sql2xx
 			int c;
 		};
 
+		struct type_child_a
+		{
+			string name;
+			nullable<int> parent; // type_inherited::id
+		};
+
 		struct type_with_unique
 		{
 			int a;
 			int b;
 			string c;
 			nullable<unsigned int> q;
+		};
+
+		struct type_child_b
+		{
+			string name;
+			int parent_a; // type_with_unique::a
+			string parent_c; // type_with_unique::c
 		};
 
 		struct type_with_primary
@@ -118,14 +131,25 @@ namespace sql2xx
 		template <typename VisitorT>
 		void describe(VisitorT &&visitor, type_inherited *)
 		{
+			visitor("TypeInherited");
 			visitor(&type_inherited::b, "b");
 			visitor(identity, &type_inherited::id, "id");
 			visitor(&type_inherited::c, "c");
 		}
 
 		template <typename VisitorT>
+		void describe(VisitorT &&visitor, type_child_a *)
+		{
+			visitor(&type_child_a::name, "name");
+			visitor(&type_child_a::parent, "parent");
+
+			visitor << foreign_key_cascade<type_inherited> << &type_child_a::parent << &type_inherited::id;
+		}
+
+		template <typename VisitorT>
 		void describe(VisitorT &&visitor, type_with_unique *)
 		{
+			visitor("UNIQUE_TABLE");
 			visitor(&type_with_unique::a, "a");
 			visitor(identity, &type_with_unique::b, "b");
 			visitor(&type_with_unique::c, "c");
@@ -134,6 +158,17 @@ namespace sql2xx
 			visitor << sql2xx::unique << &type_with_unique::a << &type_with_unique::c;
 		}
 
+		template <typename VisitorT>
+		void describe(VisitorT &&visitor, type_child_b *)
+		{
+			visitor(&type_child_b::name, "name");
+			visitor(&type_child_b::parent_a, "parent_a");
+			visitor(&type_child_b::parent_c, "parent_c");
+
+			visitor << foreign_key_cascade<type_with_unique>
+				<< &type_child_b::parent_a << &type_with_unique::a
+				<< &type_child_b::parent_c << &type_with_unique::c;
+		}
 
 		template <typename VisitorT>
 		void describe(VisitorT &&visitor, type_with_primary *)
@@ -151,8 +186,9 @@ namespace sql2xx
 		string format_columns()
 		{
 			string result;
-			std::list< std::tuple< std::string, std::vector<std::string> > > constraints;
-			column_definition_format_visitor<T> v = {	result, constraints, true	};
+			list< tuple< string, vector<string> > > constraints;
+			list<foreign_key_constraint> foreign_key_constraints;
+			column_definition_format_visitor<T> v = {	result, constraints, foreign_key_constraints, true	};
 
 			describe<T>(v);
 			return result;
@@ -208,6 +244,20 @@ namespace sql2xx
 				"a INTEGER NOT NULL,b INTEGER NOT NULL,c TEXT NOT NULL,d TEXT NOT NULL,"
 				"PRIMARY KEY(a,b,c),UNIQUE(d)"
 				")", format_create_table<type_with_primary>("Baz"));
+		}
+
+
+		test( FormattingCreateTableWithForeignKeyProvidesExpectedResult )
+		{
+			assert_equal("CREATE TABLE Child ("
+				"name TEXT NOT NULL,parent INTEGER,"
+				"FOREIGN KEY(parent) REFERENCES TypeInherited(id) ON DELETE CASCADE"
+				")", format_create_table<type_child_a>("Child"));
+
+			assert_equal("CREATE TABLE Child ("
+				"name TEXT NOT NULL,parent_a INTEGER NOT NULL,parent_c TEXT NOT NULL,"
+				"FOREIGN KEY(parent_a,parent_c) REFERENCES UNIQUE_TABLE(a,c) ON DELETE CASCADE"
+				")", format_create_table<type_child_b>("Child"));
 		}
 
 	end_test_suite

@@ -90,6 +90,39 @@ namespace sql2xx
 	};
 
 
+	struct foreign_key_constraint
+	{
+		std::string referred_table;
+		std::vector< std::tuple<std::string, std::string> > column_pairs; // (fk-column-1, pk-column-1), ...
+	};
+
+
+	template <typename T, typename ReferredT>
+	struct fk_pk_fields_collector;
+
+	template <typename T, typename ReferredT>
+	struct fk_fields_collector
+	{
+		template <typename U>
+		fk_pk_fields_collector<T, ReferredT> operator <<(U T::* field) const;
+
+		foreign_key_constraint &constraint;
+	};
+
+	template <typename T, typename ReferredT>
+	struct fk_pk_fields_collector
+	{
+		template <typename U, typename ReferredT2>
+		fk_fields_collector<T, ReferredT> operator <<(U ReferredT2::* field) const;
+
+		foreign_key_constraint &constraint;
+	};
+
+
+	template <typename T>
+	inline std::string default_table_name();
+
+
 	template <typename T>
 	struct column_definition_format_visitor
 	{
@@ -156,8 +189,21 @@ namespace sql2xx
 			return collector;
 		}
 
+		template <typename ReferredT>
+		fk_fields_collector<T, ReferredT> operator <<(void (*)(ReferredT))
+		{
+			auto &constraint = *foreign_key_constraints.insert(foreign_key_constraints.end(), foreign_key_constraint());
+
+			constraint.referred_table = default_table_name<ReferredT>();
+
+			fk_fields_collector<T, ReferredT> v = { constraint };
+
+			return v;
+		}
+
 		std::string &column_definitions;
 		std::list< std::tuple< std::string, std::vector<std::string> > > &constraints;
+		std::list<foreign_key_constraint> &foreign_key_constraints;
 		bool first;
 		bool is_nullable;
 
@@ -333,7 +379,8 @@ namespace sql2xx
 		typedef std::tuple< std::string, std::vector<std::string> > constraint_t;
 
 		std::list<constraint_t> constraints;
-		column_definition_format_visitor<T> v = {	output, constraints, true, false	};
+		std::list<foreign_key_constraint> fk_constraints;
+		column_definition_format_visitor<T> v = {	output, constraints, fk_constraints, true, false	};
 
 		output += "CREATE TABLE ";
 		output += name;
@@ -346,13 +393,35 @@ namespace sql2xx
 			output += ",";
 			output += std::get<0>(c);
 			output += "(";
-			std::for_each(std::begin(columns), std::end(columns), [&] (const std::string &col) {
+			for (auto i = std::begin(columns); i != std::end(columns); ++i, first_column = false)
+			{
 				if (!first_column)
 					output += ",";
-				output += col;
-				first_column = false;
-			});
+				output += *i;
+			}
 			output += ")";
+		});
+		std::for_each(std::begin(fk_constraints), std::end(fk_constraints), [&] (const foreign_key_constraint &c) {
+			auto first_column = true;
+
+			output += ",FOREIGN KEY(";
+			for (auto i = std::begin(c.column_pairs); i != std::end(c.column_pairs); ++i, first_column = false)
+			{
+				if (!first_column)
+					output += ",";
+				output += std::get<0>(*i);
+			}
+			output += ") REFERENCES ";
+			output += c.referred_table;
+			output += "(";
+			first_column = true;
+			for (auto i = std::begin(c.column_pairs); i != std::end(c.column_pairs); ++i, first_column = false)
+			{
+				if (!first_column)
+					output += ",";
+				output += std::get<1>(*i);
+			}
+			output += ") ON DELETE CASCADE";
 		});
 		output += ")";
 	}
@@ -362,10 +431,42 @@ namespace sql2xx
 	inline fields_collector<T> fields_collector<T>::operator <<(U T::*field) const
 	{
 		std::string name;
-		format_column_visitor<T, U> v = { field, &name };
+		format_column_visitor<T, U> v = {	field, &name	};
 
 		describe<T>(v);
 		columns.emplace_back(name);
 		return *this;
+	}
+
+	template <typename T, typename ReferredT>
+	template <typename U>
+	inline fk_pk_fields_collector<T, ReferredT> fk_fields_collector<T, ReferredT>::operator <<(U T::* field) const
+	{
+		std::string name;
+		format_column_visitor<T, U> v = {	field, &name	};
+
+		describe<T>(v);
+		constraint.column_pairs.emplace_back(std::make_tuple(name, std::string()));
+
+		fk_pk_fields_collector<T, ReferredT> next = {	constraint	};
+
+		return next;
+	}
+
+	template <typename T, typename ReferredT>
+	template <typename U, typename ReferredT2>
+	inline fk_fields_collector<T, ReferredT> fk_pk_fields_collector<T, ReferredT>::operator <<(U ReferredT2::* field) const
+	{
+		ReferredT2 *check = static_cast<ReferredT *>(nullptr);
+
+		std::string name;
+		format_column_visitor<ReferredT, U> v = {	field, &name	};
+
+		describe<ReferredT>(v);
+		std::get<1>(constraint.column_pairs.back()) = name;
+
+		fk_fields_collector<T, ReferredT> next = {	constraint	};
+
+		return next;
 	}
 }

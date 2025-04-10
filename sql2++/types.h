@@ -26,6 +26,10 @@ namespace sql2xx
 	enum primary_key_tag {	primary	};
 	enum unique_tag {	unique	};
 
+	template <typename ReferredT>
+	inline void foreign_key_cascade(ReferredT)
+	{	}
+
 	struct nil_stream
 	{
 		template <typename T>
