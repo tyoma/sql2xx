@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 project(sql2++)
 
+enable_testing()
+
 if (NOT WIN32)
 	set(CMAKE_CXX_STANDARD 11)
 endif()
@@ -26,6 +28,7 @@ if (NOT SQL2PP_NO_TESTS)
 		tests/DatabaseTests.cpp
 		tests/file_helpers.cpp
 		tests/JoiningTests.cpp
+		tests/NullableTests.cpp
 	)
 	target_link_libraries(sql2++.tests sql2++)
 	
