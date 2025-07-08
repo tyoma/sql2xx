@@ -41,9 +41,26 @@ namespace sql2xx
 		void operator ()(FieldT U::*field, const char *)
 		{	record.*field = statement_.get(index++);	}
 
+		template <typename FieldT, typename U>
+		void operator ()(nullable<FieldT> U::*field, const char *)
+		{
+			auto accessor = statement_.get(index++);
+
+			record.*field = !accessor.has_value() ? nullable<FieldT>() : nullable<FieldT>(accessor);
+		}
+
 		template <typename U>
 		void operator ()(std::string U::*field, const char *)
 		{	record.*field = static_cast<const char *>(statement_.get(index++));	}
+
+		template <typename U>
+		void operator ()(nullable<std::string> U::*field, const char *)
+		{
+			auto accessor = statement_.get(index++);
+
+			record.*field = !accessor.has_value()
+				? nullable<std::string>() : nullable<std::string>(std::string(static_cast<const char*>(accessor)));
+		}
 
 		template <typename TagT, typename F>
 		void operator ()(TagT, F field, const char *name)

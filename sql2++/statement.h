@@ -72,6 +72,8 @@ namespace sql2xx
 		operator double() const;
 		operator const char *() const;
 
+		bool has_value() const;
+
 	private:
 		sqlite3_stmt &_statement;
 		int _index;
@@ -145,6 +147,9 @@ namespace sql2xx
 
 	inline statement::field_accessor::operator const char *() const
 	{	return reinterpret_cast<const char *>(sqlite3_column_text(&_statement, _index));	}
+
+	inline bool statement::field_accessor::has_value() const
+	{	return SQLITE_NULL != sqlite3_column_type(&_statement, _index);	}
 
 
 	inline execution_error::execution_error(int code_)

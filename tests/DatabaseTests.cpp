@@ -13,6 +13,13 @@ using namespace std;
 
 namespace sql2xx
 {
+	template <typename T>
+	inline bool operator <(const nullable<T> &lhs, const nullable<T> &rhs)
+	{
+		return !lhs.has_value() && !rhs.has_value() ? false : !lhs.has_value() ? true : !rhs.has_value() ? false
+			: *lhs < *rhs;
+	}
+
 	namespace tests
 	{
 		namespace
@@ -20,11 +27,11 @@ namespace sql2xx
 			const auto c_create_sample_1 =
 				"BEGIN;"
 
-				"CREATE TABLE 'lorem_ipsums' ('name' TEXT, 'age' INTEGER);"
-				"INSERT INTO 'lorem_ipsums' VALUES ('lorem', 3141);"
-				"INSERT INTO 'lorem_ipsums' VALUES ('Ipsum', 314159);"
-				"INSERT INTO 'lorem_ipsums' VALUES ('Lorem Ipsum Amet Dolor', 314);"
-				"INSERT INTO 'lorem_ipsums' VALUES ('lorem', 31415926);"
+				"CREATE TABLE 'lorem_ipsums' ('name' TEXT NOT NULL, 'age' INTEGER NOT NULL, 'employer' TEXT NULL, 'foo' INTEGER NULL, 'bar' REAL NULL);"
+				"INSERT INTO 'lorem_ipsums' ('name', 'age', 'foo') VALUES ('lorem', 3141, 231941);"
+				"INSERT INTO 'lorem_ipsums' ('name', 'age', 'employer', 'bar') VALUES ('Ipsum', 314159, 'Microsoft', 3.1416);"
+				"INSERT INTO 'lorem_ipsums' ('name', 'age', 'foo') VALUES ('Lorem Ipsum Amet Dolor', 314, 3142);"
+				"INSERT INTO 'lorem_ipsums' ('name', 'age', 'employer') VALUES ('lorem', 31415926, 'test test');"
 
 				"CREATE TABLE 'sample_items_2' ('age' INTEGER, 'nickname' TEXT, 'name' TEXT);"
 				"INSERT INTO 'sample_items_2' VALUES (3141, 'Bob', 'lorem');"
@@ -44,9 +51,15 @@ namespace sql2xx
 			{
 				string name;
 				int age;
+				nullable<string> employer;
+				nullable<int> foo;
+				nullable<double> bar;
 
 				bool operator <(const test_a &rhs) const
-				{	return make_pair(name, age) < make_pair(rhs.name, rhs.age);	}
+				{
+					return make_tuple(name, age, employer, foo, bar)
+						< make_tuple(rhs.name, rhs.age, rhs.employer, rhs.foo, rhs.bar);
+				}
 			};
 
 			struct test_b
@@ -148,6 +161,9 @@ namespace sql2xx
 				visitor("lorem_ipsums");
 				visitor(&test_a<0>::name, "name");
 				visitor(&test_a<0>::age, "age");
+				visitor(&test_a<0>::employer, "employer");
+				visitor(&test_a<0>::foo, "foo");
+				visitor(&test_a<0>::bar, "bar");
 			}
 
 			template <typename VisitorT>
@@ -263,10 +279,10 @@ namespace sql2xx
 
 				// ASSERT
 				assert_equivalent(plural
-					+ initialize<test_a<0>>("lorem", 3141)
-					+ initialize<test_a<0>>("Ipsum", 314159)
-					+ initialize<test_a<0>>("Lorem Ipsum Amet Dolor", 314)
-					+ initialize<test_a<0>>("lorem", 31415926), results_a);
+					+ initialize<test_a<0>>("lorem", 3141, nullable<string>(), nullable<int>(231941), nullable<double>())
+					+ initialize<test_a<0>>("Ipsum", 314159, nullable<string>("Microsoft"), nullable<int>(), nullable<double>(3.1416))
+					+ initialize<test_a<0>>("Lorem Ipsum Amet Dolor", 314, nullable<string>(), nullable<int>(3142), nullable<double>())
+					+ initialize<test_a<0>>("lorem", 31415926, nullable<string>("test test")), results_a);
 
 				// INIT
 				test_b b;
