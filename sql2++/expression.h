@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include "nullable.h"
+
 #include <type_traits>
 
 namespace sql2xx
@@ -46,6 +48,14 @@ namespace sql2xx
 		typedef F result_type;
 
 		F T::*field;
+	};
+
+	template <typename T, typename F>
+	struct column< T, nullable<F> >
+	{
+		typedef F result_type;
+
+		nullable<F> T::* field;
 	};
 
 	template <unsigned int table_index, typename T, typename F>

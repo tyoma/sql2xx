@@ -264,7 +264,7 @@ namespace sql2xx
 			}
 
 
-			test( ValuesInTablesCanBeRead )
+			test( RecordsInTablesCanBeRead )
 			{
 				// INIT / ACT
 				test_a<0> a;
@@ -305,7 +305,7 @@ namespace sql2xx
 			}
 
 
-			test( ValuesInTableCanBeReadWithAQuery )
+			test( RecordsInTableCanBeReadWithAQuery )
 			{
 				// INIT / ACT
 				test_b b;
@@ -348,6 +348,26 @@ namespace sql2xx
 					+ initialize<test_b>("K", 314, "lorem")
 					+ initialize<test_b>("Liz", 314, "Lorem Ipsum Amet Dolor"), results);
 				assert_equivalent(results, results2);
+			}
+
+
+			test( RecordsInTableWithNullsCanBeReadWithAQuery )
+			{
+				// INIT / ACT
+				test_a<0> a;
+				vector< test_a<0> > results;
+				transaction t(create_connection(path.c_str()));
+
+				// INIT / ACT
+				auto r = t.select< test_a<0> >(c(&test_a<0>::employer) == p<const string>("Microsoft"));
+
+				// ACT
+				while (r(a))
+					results.push_back(a);
+
+				// ASSERT
+				assert_equivalent(plural
+					+ initialize< test_a<0> >("Ipsum", 314159, nullable<string>("Microsoft"), nullable<int>(), nullable<double>(3.1416)), results);
 			}
 
 
