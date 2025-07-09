@@ -419,6 +419,36 @@ namespace sql2xx
 			}
 
 
+			test( RecordsInsertedWithNullsCanBeRead )
+			{
+				// INIT
+				test_a<0> items[] = {
+					{	"Bob Marley", 42, nullable<string>(), nullable<int>(5612), nullable<double>()	},
+					{	"Charlie Chaplin", 71, nullable<string>("Holywood"), nullable<int>(), nullable<double>(3.141555)	},
+				};
+				transaction t(create_connection(path.c_str()));
+
+				// INIT / ACT
+				auto w = t.insert< test_a<0> >();
+
+				// ACT
+				for (auto i = begin(items); i != end(items); ++i)
+					w(static_cast<const test_a<0> &>(*i));
+				t.commit();
+
+				// ASSERT
+				auto results_a = read_all< test_a<0> >(path);
+
+				assert_equivalent(plural
+					+ initialize<test_a<0>>("lorem", 3141, nullable<string>(), nullable<int>(231941), nullable<double>())
+					+ initialize<test_a<0>>("Ipsum", 314159, nullable<string>("Microsoft"), nullable<int>(), nullable<double>(3.1416))
+					+ initialize<test_a<0>>("Lorem Ipsum Amet Dolor", 314, nullable<string>(), nullable<int>(3142), nullable<double>())
+					+ initialize<test_a<0>>("lorem", 31415926, nullable<string>("test test"))
+					+ initialize<test_a<0>>("Bob Marley", 42, nullable<string>(), nullable<int>(5612), nullable<double>())
+					+ initialize<test_a<0>>("Charlie Chaplin", 71, nullable<string>("Holywood"), nullable<int>(), nullable<double>(3.141555)), results_a);
+			}
+
+
 			test( InnerTransactionsAreProhibited )
 			{
 				// INIT

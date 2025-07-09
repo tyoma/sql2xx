@@ -21,6 +21,7 @@
 #pragma once
 
 #include "expression.h"
+#include "nullable.h"
 #include "statement.h"
 #include "types.h"
 
@@ -38,6 +39,15 @@ namespace sql2xx
 		template <typename FieldT, typename U>
 		void operator ()(FieldT U::*field, const char *)
 		{	statement_.bind(index++, item.*field);	}
+
+		template <typename FieldT, typename U>
+		void operator ()(nullable<FieldT> U::*field, const char *)
+		{
+			auto i = index++;
+
+			if ((item.*field).has_value())
+				statement_.bind(i, *(item.*field));
+		}
 
 		template <typename TagT, typename U>
 		void operator ()(TagT, U, const char *)
