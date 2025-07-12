@@ -34,8 +34,6 @@ namespace sql2xx
 	{
 		template <typename T>
 		nil_stream operator <<(T) const
-		{
-			return nil_stream();
-		}
+		{	return nil_stream();	}
 	};
 }

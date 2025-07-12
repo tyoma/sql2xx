@@ -23,6 +23,7 @@
 #include "expression.h"
 #include "nullable.h"
 #include "types.h"
+#include "visitor.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -52,31 +53,6 @@ namespace sql2xx
 		{	return nil_stream();	}
 
 		std::string &table_name;
-	};
-
-	struct select_list_visitor
-	{
-		template <typename U>
-		void operator ()(U)
-		{	}
-
-		template <typename F>
-		void operator ()(F /*field*/, const char *name)
-		{
-			if (!first)
-				table_name += ",";
-			table_name += prefix;
-			table_name += name;
-			first = false;
-		}
-
-		template <typename TagT, typename F>
-		void operator ()(TagT /*tag*/, F field, const char *name)
-		{	(*this)(field, name);	}
-
-		const char *prefix;
-		std::string &table_name;
-		bool first;
 	};
 
 
@@ -310,29 +286,40 @@ namespace sql2xx
 	template <typename T>
 	inline void format_select_list(std::string &output, T *)
 	{
-		select_list_visitor v = {	"", output, true	};
-
-		describe<T>(v);
+		describe<T>(collect_all_field_names([&] (const char *name, bool first) {
+			if (!first)
+				output += ',';
+			output += name;
+		}));
 	}
 
 	template <typename T1, typename T2>
 	inline void format_select_list(std::string &output, std::tuple<T1, T2> *)
 	{
-		select_list_visitor v0 = {	"t0.", output, true	}, v1 = {	"t1.", output, false	};
-
-		describe<T1>(v0);
-		describe<T2>(v1);
+		describe<T1>(collect_all_field_names([&] (const char *name, bool first) {
+			if (!first)
+				output += ',';
+			output += "t0."; output += name;
+		}));
+		describe<T2>(collect_all_field_names([&] (const char *name, bool /*first*/) {
+			output += ",t1."; output += name;
+		}));
 	}
 
 	template <typename T1, typename T2, typename T3>
 	inline void format_select_list(std::string &output, std::tuple<T1, T2, T3> *)
 	{
-		select_list_visitor v0 = {	"t0.", output, true	}, v1 = {	"t1.", output, false	},
-			v2 = {	"t2.", output, false	};
-
-		describe<T1>(v0);
-		describe<T2>(v1);
-		describe<T3>(v2);
+		describe<T1>(collect_all_field_names([&] (const char *name, bool first) {
+			if (!first)
+				output += ',';
+			output += "t0."; output += name;
+		}));
+		describe<T2>(collect_all_field_names([&] (const char *name, bool /*first*/) {
+			output += ",t1."; output += name;
+		}));
+		describe<T3>(collect_all_field_names([&] (const char *name, bool /*first*/) {
+			output += ",t2."; output += name;
+		}));
 	}
 
 

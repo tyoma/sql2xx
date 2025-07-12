@@ -44,6 +44,17 @@ namespace sql2xx
 
 				"CREATE TABLE 'sample_items_3' ('MyID' INTEGER PRIMARY KEY ASC, 'a' INTEGER, 'b' TEXT, 'c' INTEGER, 'd' REAL, 'e' INTEGER, 'f' INTEGER);"
 
+				"CREATE TABLE 'sample_unique' ("
+				"    username TEXT NOT NULL,"
+				"    email TEXT NOT NULL,"
+				"    age INTEGER NOT NULL,"
+				"    created_at TEXT,"
+				"    UNIQUE(username, email)"
+				");"
+				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('alice', 'alice@example.com', 30, '2024-06-01');"
+				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('bob', 'bob@example.com', 25, '2024-06-02');"
+				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('carol', 'carol@example.com', 28, '2024-06-03');"
+
 				"COMMIT;";
 
 			template <int>
@@ -155,6 +166,20 @@ namespace sql2xx
 				{	return make_tuple(id, b, c, comment) < make_tuple(rhs.id, rhs.b, rhs.c, rhs.comment);	}
 			};
 
+			struct sample_unique
+			{
+				string username;
+				string email;
+				int age;
+				string created_at;
+
+				bool operator <(const sample_unique &rhs) const
+				{
+					return make_tuple(username, email, age, created_at)
+						< make_tuple(rhs.username, rhs.email, rhs.age, rhs.created_at);
+				}
+			};
+
 			template <typename VisitorT>
 			void describe(VisitorT &visitor, test_a<0> *)
 			{
@@ -242,6 +267,16 @@ namespace sql2xx
 				visitor(&test_d::bb, "bb");
 				visitor(&test_d::bbb, "bbb");
 				visitor(&test_d::bbbb, "bbbb");
+			}
+
+			template <typename VisitorT>
+			void describe(VisitorT &visitor, sample_unique *)
+			{
+				visitor("sample_unique");
+				visitor(&sample_unique::username, "username");
+				visitor(&sample_unique::email, "email");
+				visitor(&sample_unique::age, "age");
+				visitor(&sample_unique::created_at, "created_at");
 			}
 		}
 
@@ -917,6 +952,42 @@ namespace sql2xx
 					+ initialize<test_b>("bar", 29, "dolor")
 					+ initialize<test_b>("baz", 7, "ipsum"), read_all<test_b>(t));
 			}
+
+
+			test( UpsertedRecordsCanBeRead )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+
+				// Assume upsert<T> returns a callable object like insert<T>
+				auto upsert = t.upsert<sample_unique>();
+
+				// ACT (insert a new record and update an existing)
+				upsert(initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04"));
+				upsert(initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10"));
+
+				// ASSERT: Read all records and check the upserted values
+				assert_equivalent(plural
+					+ initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10")
+					+ initialize<sample_unique>("bob", "bob@example.com", 25, "2024-06-02")
+					+ initialize<sample_unique>("carol", "carol@example.com", 28, "2024-06-03")
+					+ initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04"), read_all<sample_unique>(t));
+
+				// ACT (insert a new record and update an existing)
+				upsert(initialize<sample_unique>("DavidM", "dave@example.com", 40, "2024-06-04"));
+				upsert(initialize<sample_unique>("alice", "alice2@example.com", 31, "2024-06-10"));
+
+				// ASSERT: Read all records and check the upserted values
+				assert_equivalent(plural
+					+ initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10")
+					+ initialize<sample_unique>("bob", "bob@example.com", 25, "2024-06-02")
+					+ initialize<sample_unique>("carol", "carol@example.com", 28, "2024-06-03")
+					+ initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04")
+					+ initialize<sample_unique>("alice", "alice2@example.com", 31, "2024-06-10")
+					+ initialize<sample_unique>("DavidM", "dave@example.com", 40, "2024-06-04")
+					, read_all<sample_unique>(t));
+			}
+
 		end_test_suite
 	}
 }

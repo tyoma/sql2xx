@@ -21,13 +21,7 @@
 #pragma once
 
 #include "binding.h"
-#include "expression.h"
-#include "misc.h"
 #include "statement.h"
-#include "types.h"
-
-#include <cstdint>
-#include <string>
 
 namespace sql2xx
 {
@@ -42,28 +36,6 @@ namespace sql2xx
 
 	private:
 		sqlite3 &_connection;
-	};
-
-	template <typename T>
-	class insert_builder
-	{
-	public:
-		insert_builder(const char *table_name);
-
-		inserter<T> create_inserter(sqlite3 &connection);
-
-		template <typename U>
-		void operator ()(U);
-
-		template <typename F>
-		void operator ()(F field, const char *name);
-
-		template <typename F>
-		void operator ()(identity_tag, F field, const char *name);
-
-	private:
-		std::string _expression_text;
-		int _index;
 	};
 
 
@@ -82,41 +54,4 @@ namespace sql2xx
 		bind_identity<T>(_connection, item);
 		reset();
 	}
-
-
-	template <typename T>
-	inline insert_builder<T>::insert_builder(const char *table_name)
-		: _expression_text("INSERT INTO "), _index(0)
-	{
-		_expression_text += table_name;
-		_expression_text += " (";
-		describe<T>(*this);
-		_expression_text += ") VALUES (";
-		while (_index--)
-			_expression_text += _index ? "?," : "?";
-		_expression_text += ")";
-	}
-
-	template <typename T>
-	inline inserter<T> insert_builder<T>::create_inserter(sqlite3 &connection)
-	{	return inserter<T>(connection, create_statement(connection, _expression_text.c_str()));	}
-
-	template <typename T>
-	template <typename U>
-	inline void insert_builder<T>::operator ()(U)
-	{	}
-
-	template <typename T>
-	template <typename F>
-	inline void insert_builder<T>::operator ()(F /*field*/, const char *name)
-	{
-		if (_index++)
-			_expression_text += ',';
-		_expression_text += name;
-	}
-
-	template <typename T>
-	template <typename F>
-	inline void insert_builder<T>::operator ()(identity_tag, F, const char *)
-	{	}
 }

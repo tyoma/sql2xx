@@ -23,6 +23,7 @@
 #include "insert.h"
 #include "remove.h"
 #include "select.h"
+#include "visitor.h"
 
 namespace sql2xx
 {
@@ -54,6 +55,9 @@ namespace sql2xx
 		template <typename T>
 		inserter<T> insert();
 
+		template <typename T>
+		inserter<T> upsert();
+
 		template <typename T, typename W>
 		remover remove(const W &where);
 
@@ -61,6 +65,9 @@ namespace sql2xx
 
 	private:
 		void execute(const char *sql_statemet);
+
+		template <typename T>
+		std::string create_insert_statement();
 
 	private:
 		connection_ptr _connection;
@@ -108,7 +115,22 @@ namespace sql2xx
 
 	template <typename T>
 	inline inserter<T> transaction::insert()
-	{	return insert_builder<T>(default_table_name<T>().c_str()).create_inserter(*_connection);	}
+	{	return inserter<T>(*_connection, create_statement(*_connection, create_insert_statement<T>().c_str()));	}
+
+	template <typename T>
+	inline inserter<T> transaction::upsert()
+	{
+		auto request = create_insert_statement<T>() + " ON CONFLICT DO UPDATE SET ";
+
+		describe<T>(collect_regular_field_names([&] (const char *name, bool first) {
+			if (!first)
+				request += ',';
+			request += name;
+			request += "=EXCLUDED.";
+			request += name;
+		}));
+		return inserter<T>(*_connection, create_statement(*_connection, request.c_str()));
+	}
 
 	template <typename T, typename W>
 	inline remover transaction::remove(const W &where)
@@ -127,6 +149,26 @@ namespace sql2xx
 	catch (execution_error &e)
 	{
 		sql_error::check_step(_connection, e.code);
+	}
+
+	template <typename T>
+	inline std::string transaction::create_insert_statement()
+	{
+		auto request = "INSERT INTO " + default_table_name<T>() + " (";
+
+		describe<T>(collect_regular_field_names([&] (const char *name, bool first) {
+			if (!first)
+				request += ',';
+			request += name;
+		}));
+		request += ") VALUES (";
+		describe<T>(collect_regular_field_names([&] (const char *, bool first) {
+			if (!first)
+				request += ',';
+			request += '?';
+		}));
+		request += ") ";
+		return request;
 	}
 
 

@@ -32,6 +32,13 @@ namespace sql2xx
 			return value;
 		}
 
+		template <typename T, typename F1, typename F2, typename F3, typename F4>
+		inline T initialize(const F1 &field1, const F2 &field2, const F3 &field3, const F4 &field4)
+		{
+			T value = {	field1, field2, field3, field4,	};
+			return value;
+		}
+
 		template <typename T, typename F1, typename F2, typename F3, typename F4, typename F5>
 		inline T initialize(const F1 &field1, const F2 &field2, const F3 &field3, const F4 &field4, const F5 &field5)
 		{
