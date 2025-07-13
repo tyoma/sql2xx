@@ -45,11 +45,11 @@ namespace sql2xx
 				"CREATE TABLE 'sample_items_3' ('MyID' INTEGER PRIMARY KEY ASC, 'a' INTEGER, 'b' TEXT, 'c' INTEGER, 'd' REAL, 'e' INTEGER, 'f' INTEGER);"
 
 				"CREATE TABLE 'sample_unique' ("
-				"    username TEXT NOT NULL,"
-				"    email TEXT NOT NULL,"
-				"    age INTEGER NOT NULL,"
-				"    created_at TEXT,"
-				"    UNIQUE(username, email)"
+				"	username TEXT NOT NULL,"
+				"	email TEXT NOT NULL,"
+				"	age INTEGER NOT NULL,"
+				"	created_at TEXT,"
+				"	UNIQUE(username, email)"
 				");"
 				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('alice', 'alice@example.com', 30, '2024-06-01');"
 				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('bob', 'bob@example.com', 25, '2024-06-02');"
@@ -171,7 +171,7 @@ namespace sql2xx
 				string username;
 				string email;
 				int age;
-				string created_at;
+				nullable<string> created_at;
 
 				bool operator <(const sample_unique &rhs) const
 				{
@@ -963,29 +963,45 @@ namespace sql2xx
 				auto upsert = t.upsert<sample_unique>();
 
 				// ACT (insert a new record and update an existing)
-				upsert(initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04"));
-				upsert(initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10"));
+				upsert(initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04")));
+				upsert(initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10")));
 
 				// ASSERT: Read all records and check the upserted values
 				assert_equivalent(plural
-					+ initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10")
-					+ initialize<sample_unique>("bob", "bob@example.com", 25, "2024-06-02")
-					+ initialize<sample_unique>("carol", "carol@example.com", 28, "2024-06-03")
-					+ initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04"), read_all<sample_unique>(t));
+					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
+					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
+					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04")),
+					read_all<sample_unique>(t));
 
 				// ACT (insert a new record and update an existing)
-				upsert(initialize<sample_unique>("DavidM", "dave@example.com", 40, "2024-06-04"));
-				upsert(initialize<sample_unique>("alice", "alice2@example.com", 31, "2024-06-10"));
+				upsert(initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>("2024-06-04")));
+				upsert(initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10")));
 
 				// ASSERT: Read all records and check the upserted values
 				assert_equivalent(plural
-					+ initialize<sample_unique>("alice", "alice@example.com", 31, "2024-06-10")
-					+ initialize<sample_unique>("bob", "bob@example.com", 25, "2024-06-02")
-					+ initialize<sample_unique>("carol", "carol@example.com", 28, "2024-06-03")
-					+ initialize<sample_unique>("dave", "dave@example.com", 40, "2024-06-04")
-					+ initialize<sample_unique>("alice", "alice2@example.com", 31, "2024-06-10")
-					+ initialize<sample_unique>("DavidM", "dave@example.com", 40, "2024-06-04")
-					, read_all<sample_unique>(t));
+					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
+					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
+					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04"))
+					+ initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10"))
+					+ initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>("2024-06-04")),
+					read_all<sample_unique>(t));
+
+				// ACT (update an existing with null, update the rest with what they had)
+				upsert(initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10")));
+				upsert(initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>()));
+				upsert(initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02")));
+
+				// ASSERT: Read all records and check the upserted values
+				assert_equivalent(plural
+					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
+					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
+					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04"))
+					+ initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10"))
+					+ initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>()), // <- null created_at
+					read_all<sample_unique>(t));
 			}
 
 		end_test_suite

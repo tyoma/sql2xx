@@ -47,11 +47,16 @@ namespace sql2xx
 
 			if ((item.*field).has_value())
 				statement_.bind(i, *(item.*field));
+			// TODO: bind null.
 		}
 
 		template <typename TagT, typename U>
 		void operator ()(TagT, U, const char *)
 		{	}
+
+		template <typename T>
+		field_binder operator <<(T) const
+		{	return *this;	}
 
 		statement &statement_;
 		const T &item;
@@ -72,6 +77,10 @@ namespace sql2xx
 		template <typename U>
 		void operator ()(U, const char *)
 		{	}
+
+		template <typename T>
+		identity_binder operator <<(T) const
+		{	return *this;	}
 
 		sqlite3 &connection;
 		T &item;

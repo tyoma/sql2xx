@@ -23,6 +23,7 @@ if (NOT SQL2PP_NO_TESTS)
 	endif()
 
 	add_library(sql2++.tests SHARED
+		tests/ConstrainedTablesTests.cpp
 		tests/DatabaseDDLTests.cpp
 		tests/DatabaseExpressionTests.cpp
 		tests/DatabaseTests.cpp

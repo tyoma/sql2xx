@@ -66,6 +66,10 @@ namespace sql2xx
 		void operator ()(TagT, F field, const char *name)
 		{	(*this)(field, name);	}
 
+		template <typename T>
+		record_reader operator <<(T) const
+		{	return *this;	}
+
 		T &record;
 		statement &statement_;
 		int index;
