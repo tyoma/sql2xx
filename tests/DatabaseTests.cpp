@@ -960,7 +960,11 @@ namespace sql2xx
 				transaction t(create_connection(path.c_str()));
 
 				// Assume upsert<T> returns a callable object like insert<T>
-				auto upsert = t.upsert<sample_unique>();
+				auto upsert_ = t.upsert<sample_unique>();
+				auto upsert = [&upsert_](const sample_unique &item_) {
+					auto item = item_;
+					upsert_(item);
+				};
 
 				// ACT (insert a new record and update an existing)
 				upsert(initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04")));

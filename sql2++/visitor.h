@@ -28,7 +28,7 @@ namespace sql2xx
 	class identity_field_names_visitor
 	{
 	public:
-		identity_field_names_visitor(F &callback)
+		identity_field_names_visitor(const F &callback)
 			: _first(true), _callback(callback)
 		{	}
 
@@ -52,7 +52,7 @@ namespace sql2xx
 
 	private:
 		bool _first;
-		F &_callback;
+		const F &_callback;
 	};
 
 
@@ -60,7 +60,7 @@ namespace sql2xx
 	class regular_field_names_visitor
 	{
 	public:
-		regular_field_names_visitor(F &callback)
+		regular_field_names_visitor(const F &callback)
 			: _first(true), _callback(callback)
 		{	}
 
@@ -84,7 +84,7 @@ namespace sql2xx
 
 	private:
 		bool _first;
-		F &_callback;
+		const F &_callback;
 	};
 
 
@@ -92,7 +92,7 @@ namespace sql2xx
 	class all_field_names_visitor
 	{
 	public:
-		all_field_names_visitor(F &callback)
+		all_field_names_visitor(const F &callback)
 			: _first(true), _callback(callback)
 		{	}
 
@@ -119,20 +119,20 @@ namespace sql2xx
 
 	private:
 		bool _first;
-		F &_callback;
+		const F &_callback;
 	};
 
 
 
 	template <typename F>
-	inline identity_field_names_visitor<F> collect_identity_field_names(F &callback)
+	inline identity_field_names_visitor<F> collect_identity_field_names(const F &callback)
 	{	return identity_field_names_visitor<F>(callback);	}
 
 	template <typename F>
-	inline regular_field_names_visitor<F> collect_regular_field_names(F &callback)
+	inline regular_field_names_visitor<F> collect_regular_field_names(const F &callback)
 	{	return regular_field_names_visitor<F>(callback);	}
 
 	template <typename F>
-	inline all_field_names_visitor<F> collect_all_field_names(F &callback)
+	inline all_field_names_visitor<F> collect_all_field_names(const F &callback)
 	{	return all_field_names_visitor<F>(callback);	}
 }

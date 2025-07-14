@@ -117,6 +117,20 @@ namespace sql2xx
 		return wrap(o);
 	}
 
+	template <typename L, typename R, typename T>
+	inline wrapped< operator_<L, R> > operator <(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	{
+		operator_<L, R> o = {	lhs, rhs, "<"	};
+		return wrap(o);
+	}
+
+	template <typename L, typename R, typename T>
+	inline wrapped< operator_<L, R> > operator >(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	{
+		operator_<L, R> o = {	lhs, rhs, ">"	};
+		return wrap(o);
+	}
+
 	template <typename L, typename R>
 	inline wrapped< operator_<L, R> > operator &&(const wrapped<L, bool> &lhs, const wrapped<R, bool> &rhs)
 	{

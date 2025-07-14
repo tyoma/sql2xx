@@ -54,8 +54,8 @@ namespace sql2xx
 		void operator ()(TagT, U, const char *)
 		{	}
 
-		template <typename T>
-		field_binder operator <<(T) const
+		template <typename U>
+		field_binder operator <<(U) const
 		{	return *this;	}
 
 		statement &statement_;
@@ -78,8 +78,8 @@ namespace sql2xx
 		void operator ()(U, const char *)
 		{	}
 
-		template <typename T>
-		identity_binder operator <<(T) const
+		template <typename U>
+		identity_binder operator <<(U) const
 		{	return *this;	}
 
 		sqlite3 &connection;
