@@ -318,6 +318,34 @@ namespace sql2xx
 			}
 
 
+			test( LessEqOperatorFormatsBothExpressions )
+			{
+				// INIT
+				int val1 = 123;
+				int val2 = 31;
+				string val3 = "test";
+				string val4 = "test2";
+
+				// ACT / ASSERT
+				assert_equal(":1<=:2", format(p(val1) <= p(val2)));
+				assert_equal(":1<=:2", format(p(val3) <= p(val4)));
+			}
+
+
+			test( GreaterEqOperatorFormatsBothExpressions )
+			{
+				// INIT
+				int val1 = 123;
+				int val2 = 31;
+				string val3 = "test";
+				string val4 = "test2";
+
+				// ACT / ASSERT
+				assert_equal(":1>=:2", format(p(val1) >= p(val2)));
+				assert_equal(":1>=:2", format(p(val3) >= p(val4)));
+			}
+
+
 			test( LogicalOperatorsAreFormattedAppropriately )
 			{
 				// INIT
