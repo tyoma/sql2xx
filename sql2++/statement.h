@@ -21,6 +21,7 @@
 #pragma once
 
 #include "misc.h"
+#include "nullable.h"
 
 #include <cstdint>
 #include <functional>
@@ -47,6 +48,8 @@ namespace sql2xx
 		void reset();
 		bool execute();
 
+		template <typename T>
+		void bind(int index, const nullable<T> &value);
 		void bind(int index, std::int32_t value);
 		void bind(int index, std::uint32_t value);
 		void bind(int index, std::int64_t value);
@@ -99,6 +102,13 @@ namespace sql2xx
 		case SQLITE_ROW: return true;
 		default: throw execution_error(result);
 		}
+	}
+
+	template <typename T>
+	inline void statement::bind(int index, const nullable<T> &value)
+	{
+		if (value.has_value())
+			bind(index, *value);
 	}
 
 	inline void statement::bind(int index, std::int32_t value)

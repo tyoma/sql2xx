@@ -93,4 +93,11 @@ namespace sql2xx
 			write_all(tx, records, table_name);
 		}
 	}
+
+	template <typename T>
+	inline bool operator <(const nullable<T> &lhs, const nullable<T> &rhs)
+	{
+		return !lhs.has_value() && !rhs.has_value() ? false : !lhs.has_value() ? true : !rhs.has_value() ? false
+			: *lhs < *rhs;
+	}
 }

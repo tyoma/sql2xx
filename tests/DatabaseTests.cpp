@@ -13,13 +13,6 @@ using namespace std;
 
 namespace sql2xx
 {
-	template <typename T>
-	inline bool operator <(const nullable<T> &lhs, const nullable<T> &rhs)
-	{
-		return !lhs.has_value() && !rhs.has_value() ? false : !lhs.has_value() ? true : !rhs.has_value() ? false
-			: *lhs < *rhs;
-	}
-
 	namespace tests
 	{
 		namespace

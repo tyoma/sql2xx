@@ -30,6 +30,7 @@ if (NOT SQL2PP_NO_TESTS)
 		tests/file_helpers.cpp
 		tests/JoiningTests.cpp
 		tests/NullableTests.cpp
+		tests/PartialUpdateTests.cpp
 	)
 	target_link_libraries(sql2++.tests sql2++)
 	

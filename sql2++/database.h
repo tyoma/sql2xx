@@ -23,6 +23,7 @@
 #include "insert.h"
 #include "remove.h"
 #include "select.h"
+#include "update.h"
 #include "visitor.h"
 
 namespace sql2xx
@@ -57,6 +58,9 @@ namespace sql2xx
 
 		template <typename T>
 		inserter<T> upsert();
+
+		template <typename T, typename W, typename FieldT, typename U, typename ValueT, typename... RestT>
+		updater update(const W& where, FieldT U::*field, const ValueT &value, RestT &&...);
 
 		template <typename T, typename W>
 		remover remove(const W &where);
@@ -131,6 +135,10 @@ namespace sql2xx
 		}));
 		return inserter<T>(*_connection, create_statement(*_connection, request.c_str()));
 	}
+
+	template <typename T, typename W, typename FieldT, typename U, typename ValueT, typename... RestT>
+	inline updater transaction::update(const W &where, FieldT U:: *field, const ValueT &value, RestT &&... rest)
+	{	return update_builder<T>(where, field, value, std::forward<RestT>(rest)...).create(*_connection);	}
 
 	template <typename T, typename W>
 	inline remover transaction::remove(const W &where)
