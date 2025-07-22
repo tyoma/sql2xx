@@ -145,7 +145,10 @@ namespace sql2xx
 	{	return remove_builder(default_table_name<T>().c_str()).create_statement(*_connection, where);	}
 
 	inline void transaction::commit()
-	{	execute("COMMIT");	}
+	{
+		execute("COMMIT");
+		_comitted = true;
+	}
 
 	inline void transaction::execute(const char *sql_statemet)
 	try
