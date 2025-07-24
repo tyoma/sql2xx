@@ -15,7 +15,7 @@ sql2++ operates with the database by binding C++ user types with the table defin
     
 Let's describe this type, so that sql2++ would know how to write, update, read and remove users:
 
-    template <typename VisitorT>
+	template <typename VisitorT>
 	void describe(VisitorT &visitor, user *)
 	{
 		visitor("Users"); // Table name: Users
@@ -72,3 +72,82 @@ A more complex form of reading is when a condition is involved. A condition is a
 		records.push_back(record);
 
 Now, if no other writes to Users occurred since the insertion operation above, the records will be populated with two users with the last name "Burr".
+You can build any where expression by using logical operators, for instance:
+
+	auto filtered_users_reader = tx.select<user>(
+ 		sql2xx::c(&user::last_name) == sql2xx::p(last_name_filter) && sql2xx::c(&user::first_name) == sql2xx::p(first_name_filter));
+
+### Partial updates (UPDATE ... SET ... WHERE statement)
+sql2++ allows you to partially update records in the table without involving whole structure writes. You can do this by binding parameters and update values into an executable updater. Here's how:
+
+	std::string last_name_filter = "Burr"; // update every user with last name 'Burr'
+ 	std::string new_email = ""; // wipe the value out
+	auto update = tx.update<user>(
+ 		sql2xx::c(&user::last_name) == sql2xx::p(last_name_filter), // A WHERE clause to update only the records matching the condition.
+   		&user::email, new_email // A pair: a field (column) and a reference to the value to set. You can specify as many pairs, as you need.
+	)
+
+	last_name_filter = "Dylan";
+	new_email = "dylan@gmail.com";
+	update.reset(); // Tell sql2xx to update bindings to any parameter (via sql2xx::p) and value to set.
+	update.execute();
+
+In this way you can reuse the update statement.
+Please note, that if you plan to use <statement>.reset() function you must supply references to the objects whose lifetime spans at least to the point where you call reset().
+
+### Reading (advanced)
+You can read records from joined tables as well, as you can read single tables. To do this you use tuples and WHERE clauses that bind them into an inner join.
+Let's create two tables:
+
+	struct employee
+	{
+		int id;
+		std::string first_name;
+		std::string last_name;
+		std::string email;
+     		int company_id; // Foreign key to a record in company.
+	};
+
+	struct company
+	{
+ 		int id;
+   		std::string name;
+	}
+
+	template <typename VisitorT>
+	void describe(VisitorT &visitor, employee *)
+	{
+		visitor("Employees");
+		visitor(sql2xx::identity, &employee::id, "ID");
+		visitor(&employee::first_name, "FirstName");
+		visitor(&employee::last_name, "LastName");
+		visitor(&employee::email, "Email");
+  		visitor(&employee::company_id, "CompanyID");
+
+		// Here we specify the nature of the relationship between an employee and their company. Once a company gets deleted,
+  		// all its employees will be deleted as well.
+		visitor << sql2xx::foreign_key_cascade<company> << &employee::company_id << &company::id;
+	}
+
+	template <typename VisitorT>
+	void describe(VisitorT &visitor, company *)
+	{
+		visitor("Companies");
+		visitor(sql2xx::identity, &company::id, "ID");
+		visitor(&company::name, "CompanyName");
+	}
+
+	...
+	// Now, somewhere in the code:
+ 	typedef std::tuple<employee, company> employee_full;
+
+	auto reader = t->select<employee_full>(
+		sql2xx::c<1 /*second element of the tuple*/>(&company::id)
+			== sql2xx::c<0 /*first element of the tuple*/>(&employee::company_id)
+   		&& sql2xx::c<1>(&company::name) == sql2xx::p<const string /*as we have parameter in-place*/>("Microsoft")
+	);
+ 	...
+
+The snippet above will read all the employees from the company named 'Microsoft'.
+
+
