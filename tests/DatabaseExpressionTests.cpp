@@ -33,6 +33,13 @@ namespace sql2xx
 				int year;
 			};
 
+			struct person_with_nullable
+			{
+				string first_name, last_name;
+				nullable<string> employer;
+				nullable<int> year_admitted;
+			};
+
 			template <typename E>
 			string format(const E &e)
 			{
@@ -69,6 +76,16 @@ namespace sql2xx
 			{
 				visitor("events");
 				visitor(&event::name, "Name");
+			}
+
+			template <typename VisitorT>
+			void describe(VisitorT &&visitor, person_with_nullable *)
+			{
+				visitor("person");
+				visitor(&person_with_nullable::first_name, "FirstName");
+				visitor(&person_with_nullable::last_name, "LastName");
+				visitor(&person_with_nullable::employer, "employer");
+				visitor(&person_with_nullable::year_admitted, "year_admitted");
 			}
 		}
 
@@ -400,6 +417,22 @@ namespace sql2xx
 
 				// ASSERT
 				assert_equal(":1=YearOfBirth OR last_name<>:2", result);
+			}
+
+
+			test( IsNullIsFormattedAccordinglyToColumnNames )
+			{
+				// INIT / ACT / ASSERT
+				assert_equal("(employer IS NULL)", format(sql2xx::is_null(c(&person_with_nullable::employer))));
+				assert_equal("(year_admitted IS NULL)", format(sql2xx::is_null(c(&person_with_nullable::year_admitted))));
+			}
+
+
+			test( IsNotNullIsFormattedAccordinglyToColumnNames )
+			{
+				// INIT / ACT / ASSERT
+				assert_equal("(employer IS NOT NULL)", format(sql2xx::is_not_null(c(&person_with_nullable::employer))));
+				assert_equal("(year_admitted IS NOT NULL)", format(sql2xx::is_not_null(c(&person_with_nullable::year_admitted))));
 			}
 
 		end_test_suite

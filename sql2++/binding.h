@@ -90,7 +90,7 @@ namespace sql2xx
 	{	statement_.bind(index++, e.object);	}
 
 	template <typename L, typename R>
-	inline void bind_parameters(statement &statement_, const operator_<L, R> &e, unsigned int &index)
+	inline void bind_parameters(statement &statement_, const binary_operator<L, R> &e, unsigned int &index)
 	{	bind_parameters(statement_, e.lhs, index), bind_parameters(statement_, e.rhs, index);	}
 
 

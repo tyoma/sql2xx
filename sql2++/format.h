@@ -345,11 +345,19 @@ namespace sql2xx
 	}
 
 	template <typename L, typename R>
-	inline void format_expression(std::string &output, const operator_<L, R> &e, unsigned int &index)
+	inline void format_expression(std::string &output, const binary_operator<L, R> &e, unsigned int &index)
 	{
 		format_expression(output, e.lhs, index);
 		output += e.literal;
 		format_expression(output, e.rhs, index);
+	}
+
+	template <typename U>
+	inline void format_expression(std::string &output, const unary_operator<U> &e, unsigned int &index)
+	{
+		output += e.literal_prefix;
+		format_expression(output, e.operand, index);
+		output += e.literal_postfix;
 	}
 
 	template <typename E>

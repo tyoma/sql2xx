@@ -29,6 +29,8 @@ namespace sql2xx
 	template <typename T, typename R = typename T::result_type>
 	struct wrapped : T
 	{
+		typedef R result_type;
+
 		wrapped(const T &inner)
 			: T(inner)
 		{	}
@@ -50,13 +52,11 @@ namespace sql2xx
 		F T::*field;
 	};
 
-	template <typename T, typename F>
-	struct column< T, nullable<F> >
-	{
-		typedef F result_type;
+	template <typename T>
+	struct remove_nullable {	typedef T type;	};
 
-		nullable<F> T::* field;
-	};
+	template <typename T>
+	struct remove_nullable< nullable<T> > {	typedef T type;	};
 
 	template <unsigned int table_index, typename T, typename F>
 	struct prefixed_column
@@ -67,13 +67,26 @@ namespace sql2xx
 	};
 
 	template <typename L, typename R>
-	struct operator_
+	struct binary_operator
 	{
 		typedef bool result_type;
 
 		L lhs;
 		R rhs;
 		const char *literal;
+
+		decltype(typename remove_nullable<typename L::result_type>::type()
+			== typename remove_nullable<typename R::result_type>::type()) __validity;
+	};
+
+	template <typename U>
+	struct unary_operator
+	{
+		typedef bool result_type;
+
+		U operand;
+		const char *literal_prefix;
+		const char* literal_postfix;
 	};
 
 
@@ -103,59 +116,73 @@ namespace sql2xx
 		return wrap(param);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator ==(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator ==(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, "="	};
+		binary_operator<L, R> o = {	lhs, rhs, "="	};
 		return wrap(o);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator !=(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator !=(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, "<>"	};
+		binary_operator<L, R> o = {	lhs, rhs, "<>"	};
 		return wrap(o);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator <(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator <(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, "<"	};
+		binary_operator<L, R> o = {	lhs, rhs, "<"	};
 		return wrap(o);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator >(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator >(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, ">"	};
+		binary_operator<L, R> o = {	lhs, rhs, ">"	};
 		return wrap(o);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator <=(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator <=(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, "<="	};
+		binary_operator<L, R> o = {	lhs, rhs, "<="	};
 		return wrap(o);
 	}
 
-	template <typename L, typename R, typename T>
-	inline wrapped< operator_<L, R> > operator >=(const wrapped<L, T> &lhs, const wrapped<R, T> &rhs)
+	template <typename L, typename R, typename T1, typename T2>
+	inline wrapped< binary_operator<L, R> > operator >=(const wrapped<L, T1> &lhs, const wrapped<R, T2> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, ">="	};
-		return wrap(o);
-	}
-
-	template <typename L, typename R>
-	inline wrapped< operator_<L, R> > operator &&(const wrapped<L, bool> &lhs, const wrapped<R, bool> &rhs)
-	{
-		operator_<L, R> o = {	lhs, rhs, " AND "	};
+		binary_operator<L, R> o = {	lhs, rhs, ">="	};
 		return wrap(o);
 	}
 
 	template <typename L, typename R>
-	inline wrapped< operator_<L, R> > operator ||(const wrapped<L, bool> &lhs, const wrapped<R, bool> &rhs)
+	inline wrapped< binary_operator<L, R> > operator &&(const wrapped<L, bool> &lhs, const wrapped<R, bool> &rhs)
 	{
-		operator_<L, R> o = {	lhs, rhs, " OR "	};
+		binary_operator<L, R> o = {	lhs, rhs, " AND "	};
+		return wrap(o);
+	}
+
+	template <typename L, typename R>
+	inline wrapped< binary_operator<L, R> > operator ||(const wrapped<L, bool> &lhs, const wrapped<R, bool> &rhs)
+	{
+		binary_operator<L, R> o = {	lhs, rhs, " OR "	};
+		return wrap(o);
+	}
+
+	template <typename U, typename T>
+	inline wrapped< unary_operator<U> > is_null(const wrapped< U, nullable<T> > &operand)
+	{
+		unary_operator<U> o = {	operand, "(", " IS NULL)" };
+		return wrap(o);
+	}
+
+	template <typename U, typename T>
+	inline wrapped< unary_operator<U> > is_not_null(const wrapped< U, nullable<T> > &operand)
+	{
+		unary_operator<U> o = {	operand, "(", " IS NOT NULL)" };
 		return wrap(o);
 	}
 
