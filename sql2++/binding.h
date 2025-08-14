@@ -93,6 +93,9 @@ namespace sql2xx
 	inline void bind_parameters(statement &statement_, const binary_operator<L, R> &e, unsigned int &index)
 	{	bind_parameters(statement_, e.lhs, index), bind_parameters(statement_, e.rhs, index);	}
 
+	template <typename U>
+	inline void bind_parameters(statement &statement_, const unary_operator<U> &e, unsigned int &index)
+	{	bind_parameters(statement_, e.operand, index);	}
 
 	template <typename E>
 	inline void bind_parameters(statement &statement_, const E &e)

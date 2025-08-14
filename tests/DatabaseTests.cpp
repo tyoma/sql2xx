@@ -396,6 +396,21 @@ namespace sql2xx
 				// ASSERT
 				assert_equivalent(plural
 					+ initialize< test_a<0> >("Ipsum", 314159, nullable<string>("Microsoft"), nullable<int>(), nullable<double>(3.1416)), results);
+
+				// INIT
+				results.clear();
+
+				// INIT / ACT
+				auto r2 = t.select< test_a<0> >(is_null(c(&test_a<0>::employer)));
+
+				// ACT
+				while (r2(a))
+					results.push_back(a);
+
+				// ASSERT
+				assert_equivalent(plural
+					+ initialize< test_a<0> >("lorem", 3141, nullable<string>(), nullable<int>(231941), nullable<double>())
+					+ initialize< test_a<0> >("Lorem Ipsum Amet Dolor", 314, nullable<string>(), nullable<int>(3142), nullable<double>()), results);
 			}
 
 
