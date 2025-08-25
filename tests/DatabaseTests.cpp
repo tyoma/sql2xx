@@ -45,7 +45,7 @@ namespace sql2xx
 				"	UNIQUE(username, email)"
 				");"
 				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('alice', 'alice@example.com', 30, '2024-06-01');"
-				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('bob', 'bob@example.com', 25, '2024-06-02');"
+				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('Bob', 'bob@example.com', 25, '2024-06-02');"
 				"INSERT INTO 'sample_unique' (username, email, age, created_at) VALUES ('carol', 'carol@example.com', 28, '2024-06-03');"
 
 				"COMMIT;";
@@ -981,7 +981,7 @@ namespace sql2xx
 				// ASSERT: Read all records and check the upserted values
 				assert_equivalent(plural
 					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
-					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("Bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
 					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
 					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04")),
 					read_all<sample_unique>(t));
@@ -993,7 +993,7 @@ namespace sql2xx
 				// ASSERT: Read all records and check the upserted values
 				assert_equivalent(plural
 					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
-					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("Bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
 					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
 					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04"))
 					+ initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10"))
@@ -1003,17 +1003,60 @@ namespace sql2xx
 				// ACT (update an existing with null, update the rest with what they had)
 				upsert(initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10")));
 				upsert(initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>()));
-				upsert(initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02")));
+				upsert(initialize<sample_unique>("Bob", "bob@example.com", 25, nullable<string>("2024-06-02")));
 
 				// ASSERT: Read all records and check the upserted values
 				assert_equivalent(plural
 					+ initialize<sample_unique>("alice", "alice@example.com", 31, nullable<string>("2024-06-10"))
-					+ initialize<sample_unique>("bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
+					+ initialize<sample_unique>("Bob", "bob@example.com", 25, nullable<string>("2024-06-02"))
 					+ initialize<sample_unique>("carol", "carol@example.com", 28, nullable<string>("2024-06-03"))
 					+ initialize<sample_unique>("dave", "dave@example.com", 40, nullable<string>("2024-06-04"))
 					+ initialize<sample_unique>("alice", "alice2@example.com", 31, nullable<string>("2024-06-10"))
 					+ initialize<sample_unique>("DavidM", "dave@example.com", 40, nullable<string>()), // <- null created_at
 					read_all<sample_unique>(t));
+			}
+
+
+			test( CountingAllRecordsReturnsCorrectResults )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+
+				// ACT / ASSERT
+				assert_equal(4u, t.count<test_a<0>>());
+				assert_equal(5u, t.count<test_b>());
+			}
+
+
+			test( CountingAllCartesianRecordsReturnsCorrectResults )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+
+				// ACT / ASSERT
+				assert_equal(20u, (t.count<tuple<test_a<0>, test_b>>()));
+			}
+
+
+			test( CountingRecordsWithConditionReturnsCorrectResults )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+
+				// ACT / ASSERT
+				assert_equal(2u, t.count<test_a<0>>(c(&test_a<0>::age) < p<const int>(5000)));
+				assert_equal(3u, t.count<test_a<0>>(c(&test_a<0>::age) > p<const int>(1001)));
+				assert_equal(1u, t.count<test_b>(c(&test_b::suspect_name) == p<const string>("Ipsum")));
+			}
+
+
+			test( CountingJoinedRecordsWithConditionReturnsCorrectResults )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+
+				// ACT / ASSERT
+				assert_equal(1u, (t.count<tuple<test_b, sample_unique>>(c(&test_b::nickname) == c(&sample_unique::username))));
 			}
 
 		end_test_suite

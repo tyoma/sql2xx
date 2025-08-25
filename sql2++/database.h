@@ -54,6 +54,12 @@ namespace sql2xx
 		reader<T> select(const W &where);
 
 		template <typename T>
+		std::size_t count();
+
+		template <typename T, typename W>
+		std::size_t count(const W &where);
+
+		template <typename T>
 		inserter<T> insert();
 
 		template <typename T>
@@ -116,6 +122,36 @@ namespace sql2xx
 	template <typename T, typename W>
 	inline reader<T> transaction::select(const W &where)
 	{	return select_builder<T>().create_reader(*_connection, where);	}
+
+	template <typename T>
+	std::size_t transaction::count()
+	{
+		std::string expression_text = "SELECT COUNT(*) FROM ";
+
+		format_table_source(expression_text, static_cast<T *>(nullptr));
+
+		statement stmt(create_statement(*_connection, expression_text.c_str()));
+
+		stmt.execute();
+		return static_cast<std::size_t>(static_cast<std::uint64_t>(stmt.get(0)));
+	}
+
+	template <typename T, typename W>
+	std::size_t transaction::count(const W &where)
+	{
+		std::string expression_text = "SELECT COUNT(*) FROM ";
+
+		format_table_source(expression_text, static_cast<T *>(nullptr));
+		expression_text += " WHERE ";
+		format_expression(expression_text, where);
+
+		statement stmt(create_statement(*_connection, expression_text.c_str()));
+
+		bind_parameters(stmt, where);
+		stmt.execute();
+		return static_cast<std::size_t>(static_cast<std::uint64_t>(stmt.get(0)));
+	}
+
 
 	template <typename T>
 	inline inserter<T> transaction::insert()
