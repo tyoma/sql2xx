@@ -288,8 +288,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1=:2", format(p(val1) == p(val2)));
-				assert_equal(":1=:2", format(p(val3) == p(val4)));
+				assert_equal("(:1=:2)", format(p(val1) == p(val2)));
+				assert_equal("(:1=:2)", format(p(val3) == p(val4)));
 			}
 
 
@@ -302,8 +302,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1<>:2", format(p(val1) != p(val2)));
-				assert_equal(":1<>:2", format(p(val3) != p(val4)));
+				assert_equal("(:1<>:2)", format(p(val1) != p(val2)));
+				assert_equal("(:1<>:2)", format(p(val3) != p(val4)));
 			}
 
 
@@ -316,8 +316,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1<:2", format(p(val1) < p(val2)));
-				assert_equal(":1<:2", format(p(val3) < p(val4)));
+				assert_equal("(:1<:2)", format(p(val1) < p(val2)));
+				assert_equal("(:1<:2)", format(p(val3) < p(val4)));
 			}
 
 
@@ -330,8 +330,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1>:2", format(p(val1) > p(val2)));
-				assert_equal(":1>:2", format(p(val3) > p(val4)));
+				assert_equal("(:1>:2)", format(p(val1) > p(val2)));
+				assert_equal("(:1>:2)", format(p(val3) > p(val4)));
 			}
 
 
@@ -344,8 +344,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1<=:2", format(p(val1) <= p(val2)));
-				assert_equal(":1<=:2", format(p(val3) <= p(val4)));
+				assert_equal("(:1<=:2)", format(p(val1) <= p(val2)));
+				assert_equal("(:1<=:2)", format(p(val3) <= p(val4)));
 			}
 
 
@@ -358,8 +358,8 @@ namespace sql2xx
 				string val4 = "test2";
 
 				// ACT / ASSERT
-				assert_equal(":1>=:2", format(p(val1) >= p(val2)));
-				assert_equal(":1>=:2", format(p(val3) >= p(val4)));
+				assert_equal("(:1>=:2)", format(p(val1) >= p(val2)));
+				assert_equal("(:1>=:2)", format(p(val3) >= p(val4)));
 			}
 
 
@@ -372,10 +372,10 @@ namespace sql2xx
 				auto val4 = false;
 
 				// ACT / ASSERT
-				assert_equal(":1 AND :2", format(p(val1) && p(val2)));
-				assert_equal(":1 AND :2", format(p(val3) && p(val4)));
-				assert_equal(":1 OR :2", format(p(val1) || p(val2)));
-				assert_equal(":1 OR :2", format(p(val3) || p(val4)));
+				assert_equal("(:1 AND :2)", format(p(val1) && p(val2)));
+				assert_equal("(:1 AND :2)", format(p(val3) && p(val4)));
+				assert_equal("(:1 OR :2)", format(p(val1) || p(val2)));
+				assert_equal("(:1 OR :2)", format(p(val3) || p(val4)));
 			}
 
 
@@ -394,7 +394,7 @@ namespace sql2xx
 				);
 
 				// ASSERT
-				assert_equal(":1=:2 AND :3=:4", result);
+				assert_equal("((:1=:2) AND (:3=:4))", result);
 
 				// INIT
 				result.clear();
@@ -405,7 +405,7 @@ namespace sql2xx
 				);
 
 				// ASSERT
-				assert_equal(":1=:2 OR :3<>:4", result);
+				assert_equal("((:1=:2) OR (:3<>:4))", result);
 
 				// INIT
 				result.clear();
@@ -416,7 +416,7 @@ namespace sql2xx
 				);
 
 				// ASSERT
-				assert_equal(":1=YearOfBirth OR last_name<>:2", result);
+				assert_equal("((:1=YearOfBirth) OR (last_name<>:2))", result);
 			}
 
 

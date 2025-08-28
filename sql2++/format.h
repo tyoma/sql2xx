@@ -347,9 +347,11 @@ namespace sql2xx
 	template <typename L, typename R>
 	inline void format_expression(std::string &output, const binary_operator<L, R> &e, unsigned int &index)
 	{
+		output += '(';
 		format_expression(output, e.lhs, index);
 		output += e.literal;
 		format_expression(output, e.rhs, index);
+		output += ')';
 	}
 
 	template <typename U>
