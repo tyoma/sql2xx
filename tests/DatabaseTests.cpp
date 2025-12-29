@@ -95,6 +95,9 @@ namespace sql2xx
 
 				bool operator <(const test_d &rhs) const
 				{	return make_tuple(bb, bbb, bbbb) < make_tuple(rhs.bb, rhs.bbb, rhs.bbbb);	}
+
+				bool operator ==(const test_d &rhs) const
+				{	return make_tuple(bb, bbb, bbbb) == make_tuple(rhs.bb, rhs.bbb, rhs.bbbb);	}
 			};
 
 			struct sample_item_1
@@ -1057,6 +1060,36 @@ namespace sql2xx
 
 				// ACT / ASSERT
 				assert_equal(1u, (t.count<tuple<test_b, sample_unique>>(c(&test_b::nickname) == c(&sample_unique::username))));
+			}
+
+
+			test( SortOrderIsAppliedUponSelect )
+			{
+				// INIT
+				transaction t(create_connection(path.c_str()));
+				auto items = plural
+					+ initialize<test_d>(1, "lost", 11)
+					+ initialize<test_d>(7, "lost", 17)
+					+ initialize<test_d>(2, "lost", 13)
+					+ initialize<test_d>(3, "found", 19);
+
+				t.create_table<test_d>();
+
+				// INIT / ACT
+				auto w = t.insert<test_d>();
+
+				for (auto i = begin(items); i != end(items); ++i)
+					w(*i);
+
+				// ACT
+				auto r = read_all(t.select<test_d>(c(&test_d::bb) > p<const int>(0), c(&test_d::bbb), true, c(&test_d::bbbb), false));
+
+				// ASSERT
+				assert_equal(plural
+					+ initialize<test_d>(3, "found", 19)
+					+ initialize<test_d>(7, "lost", 17)
+					+ initialize<test_d>(2, "lost", 13)
+					+ initialize<test_d>(1, "lost", 11), r);
 			}
 
 		end_test_suite

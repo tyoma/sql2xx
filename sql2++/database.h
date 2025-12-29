@@ -50,8 +50,8 @@ namespace sql2xx
 		template <typename T>
 		reader<T> select();
 
-		template <typename T, typename W>
-		reader<T> select(const W &where);
+		template <typename T, typename T2, typename R, typename... OrderT>
+		reader<T> select(const wrapped<T2, R> &where, OrderT&&... order);
 
 		template <typename T>
 		std::size_t count();
@@ -119,9 +119,9 @@ namespace sql2xx
 	inline reader<T> transaction::select()
 	{	return select_builder<T>().create_reader(*_connection);	}
 
-	template <typename T, typename W>
-	inline reader<T> transaction::select(const W &where)
-	{	return select_builder<T>().create_reader(*_connection, where);	}
+	template <typename T, typename T2, typename R, typename... OrderT>
+	inline reader<T> transaction::select(const wrapped<T2, R> &where, OrderT&&... order)
+	{	return select_builder<T>().create_reader(*_connection, where, std::forward<OrderT>(order)...);	}
 
 	template <typename T>
 	std::size_t transaction::count()

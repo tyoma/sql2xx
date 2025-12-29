@@ -127,10 +127,7 @@ namespace sql2xx
 			p(statement_);
 			statement_.bind(index, value);
 		};
-
-		format_column_visitor<T, FieldT> v = {	field, &_expression	};
-
-		describe<T>(v);
+		format_column(_expression, c(field));
 		_expression += "=:";
 		_expression += std::to_string(index);
 	}

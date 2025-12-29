@@ -40,8 +40,8 @@ namespace sql2xx
 				nullable<int> year_admitted;
 			};
 
-			template <typename E>
-			string format(const E &e)
+			template <typename T, typename R>
+			string format(const wrapped<T, R> &e)
 			{
 				string non_empty = "abc abc";
 				string value;
@@ -49,6 +49,18 @@ namespace sql2xx
 				format_expression(non_empty, e);
 				format_expression(value, e);
 				assert_equal("abc abc" + value, non_empty); // format() appends.
+				return value;
+			}
+
+			template <typename... RestT>
+			string format_order(RestT&&... fields)
+			{
+				string non_empty = "abc abc";
+				string value;
+
+				sql2xx::format_order(non_empty, std::forward<RestT>(fields)...);
+				sql2xx::format_order(value, std::forward<RestT>(fields)...);
+				assert_equal("abc abc" + value, non_empty); // format_order() appends.
 				return value;
 			}
 
@@ -433,6 +445,16 @@ namespace sql2xx
 				// INIT / ACT / ASSERT
 				assert_equal("(employer IS NOT NULL)", format(sql2xx::is_not_null(c(&person_with_nullable::employer))));
 				assert_equal("(year_admitted IS NOT NULL)", format(sql2xx::is_not_null(c(&person_with_nullable::year_admitted))));
+			}
+
+
+			test( OrderIsFormattedAccordinglyToColumnNames )
+			{
+				// INIT / ACT / ASSERT
+				assert_equal("", format_order());
+				assert_equal(" ORDER BY FirstName ASC", format_order(c(&person::first_name), true));
+				assert_equal(" ORDER BY last_name DESC", format_order(c(&person::last_name), false));
+				assert_equal(" ORDER BY last_name ASC,FirstName DESC", format_order(c(&person::last_name), true, c(&person::first_name), false));
 			}
 
 		end_test_suite

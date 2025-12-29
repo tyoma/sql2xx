@@ -324,18 +324,26 @@ namespace sql2xx
 
 
 	template <typename T, typename F>
-	inline void format_expression(std::string &output, const column<T, F> &e, unsigned int &/*index*/)
+	inline void format_column(std::string &output, const column<T, F> &e)
 	{
 		format_column_visitor<T, F> v = {	e.field, &output	};
 		describe<T>(v);
 	}
 
 	template <unsigned int table_index, typename T, typename F>
-	inline void format_expression(std::string &output, const prefixed_column<table_index, T, F> &e, unsigned int &/*index*/)
+	inline void format_column(std::string &output, const prefixed_column<table_index, T, F> &e)
 	{
 		format_column_visitor<T, F> v = {	e.field, &output	};
 		table_alias<table_index>(output), output += ".", describe<T>(v);
 	}
+
+	template <typename T, typename F>
+	inline void format_expression(std::string &output, const column<T, F> &e, unsigned int &/*index*/)
+	{	format_column(output, e);	}
+
+	template <unsigned int table_index, typename T, typename F>
+	inline void format_expression(std::string &output, const prefixed_column<table_index, T, F> &e, unsigned int &/*index*/)
+	{	format_column(output, e);	}
 
 	template <typename T>
 	inline void format_expression(std::string &output, const parameter<T> &/*e*/, unsigned int &index)
@@ -362,13 +370,43 @@ namespace sql2xx
 		output += e.literal_postfix;
 	}
 
-	template <typename E>
-	inline void format_expression(std::string &output, const E &e)
+	template <typename T, typename R>
+	inline void format_expression(std::string &output, const wrapped<T, R> &e)
 	{
 		auto index = 1u;
 
 		format_expression(output, e, index);
 	}
+
+	template <typename T, typename F>
+	inline void format_order_one(std::string &output, const column<T, F> &col, bool ascending)
+	{
+		format_column(output, col);
+		output += ascending ? " ASC" : " DESC";
+	}
+
+	inline void format_order_next(std::string &/*output*/)
+	{	}
+
+	template <typename T, typename F, typename... RestT>
+	inline void format_order_next(std::string &output, const column<T, F> &col, bool ascending, RestT&&... args)
+	{
+		output += ",";
+		format_order_one(output, col, ascending);
+		format_order_next(output, std::forward<RestT>(args)...);
+	}
+
+	inline void format_order(std::string &/*output*/)
+	{	}
+
+	template <typename T, typename F, typename... RestT>
+	inline void format_order(std::string &output, const column<T, F> &col, bool ascending, RestT&&... args)
+	{
+		output += " ORDER BY ";
+		format_order_one(output, col, ascending);
+		format_order_next(output, std::forward<RestT>(args)...);
+	}
+
 
 	template <typename T>
 	inline void format_create_table(std::string &output, const char *name)
@@ -428,9 +466,8 @@ namespace sql2xx
 	inline fields_collector<T> fields_collector<T>::operator <<(U T::*field) const
 	{
 		std::string name;
-		format_column_visitor<T, U> v = {	field, &name	};
 
-		describe<T>(v);
+		format_column(name, c(field));
 		columns.emplace_back(name);
 		return *this;
 	}
@@ -440,9 +477,8 @@ namespace sql2xx
 	inline fk_pk_fields_collector<T, ReferredT> fk_fields_collector<T, ReferredT>::operator <<(U T::* field) const
 	{
 		std::string name;
-		format_column_visitor<T, U> v = {	field, &name	};
 
-		describe<T>(v);
+		format_column(name, c(field));
 		constraint.column_pairs.emplace_back(std::make_tuple(name, std::string()));
 
 		fk_pk_fields_collector<T, ReferredT> next = {	constraint	};

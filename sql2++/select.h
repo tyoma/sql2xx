@@ -94,8 +94,8 @@ namespace sql2xx
 
 		reader<T> create_reader(sqlite3 &database) const;
 
-		template <typename W>
-		reader<T> create_reader(sqlite3 &database, const W &where) const;
+		template <typename T2, typename R, typename... OrderT>
+		reader<T> create_reader(sqlite3 &database, const wrapped<T2, R> &where, OrderT&&... order) const;
 
 	private:
 		int _index;
@@ -163,13 +163,14 @@ namespace sql2xx
 	{	return reader<T>(create_statement(database, _expression_text.c_str()));	}
 
 	template <typename T>
-	template <typename W>
-	inline reader<T> select_builder<T>::create_reader(sqlite3 &database, const W &where) const
+	template <typename T2, typename R, typename... OrderT>
+	inline reader<T> select_builder<T>::create_reader(sqlite3 &database, const wrapped<T2, R> &where, OrderT&&... order) const
 	{
 		auto expression_text = _expression_text;
 
 		expression_text += " WHERE ";
 		format_expression(expression_text, where);
+		format_order(expression_text, std::forward<OrderT>(order)...);
 		return reader<T>(create_statement(database, expression_text.c_str()), where);
 	}
 }
