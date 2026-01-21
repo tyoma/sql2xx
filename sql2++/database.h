@@ -41,7 +41,7 @@ namespace sql2xx
 		enum type {	deferred, immediate, exclusive,	};
 
 	public:
-		transaction(connection_ptr connection, type type_ = deferred, int timeout_ms = 500);
+		transaction(connection_ptr connection, type type_ = deferred, int timeout_ms = 30000);
 		~transaction();
 
 		template <typename T>
