@@ -457,6 +457,15 @@ namespace sql2xx
 				assert_equal(" ORDER BY last_name ASC,FirstName DESC", format_order(c(&person::last_name), true, c(&person::first_name), false));
 			}
 
+
+			test( OrderIsFormattedAccordinglyToPrefixedColumnNames )
+			{
+				// INIT / ACT / ASSERT
+				assert_equal(" ORDER BY t0.FirstName ASC", format_order(c<0>(&person::first_name), true));
+				assert_equal(" ORDER BY t1.last_name DESC", format_order(c<1>(&person::last_name), false));
+				assert_equal(" ORDER BY t0.last_name ASC,t2.FirstName DESC", format_order(c<0>(&person::last_name), true, c<2>(&person::first_name), false));
+			}
+
 		end_test_suite
 	}
 }

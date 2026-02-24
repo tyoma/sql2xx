@@ -378,8 +378,8 @@ namespace sql2xx
 		format_expression(output, e, index);
 	}
 
-	template <typename T, typename F>
-	inline void format_order_one(std::string &output, const column<T, F> &col, bool ascending)
+	template <typename ColT>
+	inline void format_order_one(std::string &output, const ColT &col, bool ascending)
 	{
 		format_column(output, col);
 		output += ascending ? " ASC" : " DESC";
@@ -388,8 +388,8 @@ namespace sql2xx
 	inline void format_order_next(std::string &/*output*/)
 	{	}
 
-	template <typename T, typename F, typename... RestT>
-	inline void format_order_next(std::string &output, const column<T, F> &col, bool ascending, RestT&&... args)
+	template <typename ColT, typename... RestT>
+	inline void format_order_next(std::string &output, const ColT &col, bool ascending, RestT&&... args)
 	{
 		output += ",";
 		format_order_one(output, col, ascending);
@@ -399,8 +399,8 @@ namespace sql2xx
 	inline void format_order(std::string &/*output*/)
 	{	}
 
-	template <typename T, typename F, typename... RestT>
-	inline void format_order(std::string &output, const column<T, F> &col, bool ascending, RestT&&... args)
+	template <typename ColT, typename... RestT>
+	inline void format_order(std::string &output, const ColT &col, bool ascending, RestT&&... args)
 	{
 		output += " ORDER BY ";
 		format_order_one(output, col, ascending);
