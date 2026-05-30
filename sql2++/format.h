@@ -263,24 +263,27 @@ namespace sql2xx
 		describe<T>(v);
 	}
 
-	template <typename T1, typename T2>
-	inline void format_table_source(std::string &output, std::tuple<T1, T2> *)
+	template <unsigned int index, typename T1, typename T2>
+	inline void format_table_source_tuple(std::string &output, std::tuple<T1, T2> *)
 	{
 		table_source_visitor v = {	output	};
 
-		describe<T1>(v), output += " AS ", table_alias<0>(output), output += ",";
-		describe<T2>(v), output += " AS ", table_alias<1>(output);
+		describe<T1>(v), output += " AS ", table_alias<index>(output), output += ',';
+		describe<T2>(v), output += " AS ", table_alias<index + 1>(output);
 	}
 
-	template <typename T1, typename T2, typename T3>
-	inline void format_table_source(std::string &output, std::tuple<T1, T2, T3> *)
+	template <unsigned int index, typename T, typename... RestT>
+    inline void format_table_source_tuple(std::string &output, std::tuple<T, RestT...> *)
 	{
 		table_source_visitor v = {	output	};
 
-		describe<T1>(v), output += " AS ", table_alias<0>(output), output += ",";
-		describe<T2>(v), output += " AS ", table_alias<1>(output), output += ",";
-		describe<T3>(v), output += " AS ", table_alias<2>(output);
+		describe<T>(v), output += " AS ", table_alias<index>(output), output += ',';
+		format_table_source_tuple<index + 1>(output, static_cast<std::tuple<RestT...> *>(nullptr));
 	}
+
+	template <typename... T>
+	inline void format_table_source(std::string &output, std::tuple<T...> *)
+	{	format_table_source_tuple<0>(output, static_cast<std::tuple<T...> *>(nullptr));	}
 
 
 	template <typename T>
@@ -293,34 +296,33 @@ namespace sql2xx
 		}));
 	}
 
-	template <typename T1, typename T2>
-	inline void format_select_list(std::string &output, std::tuple<T1, T2> *)
+	template <unsigned int index, typename T>
+	inline void format_select_list_prefixed(std::string &output, bool first)
 	{
-		describe<T1>(collect_all_field_names([&] (const char *name, bool first) {
-			if (!first)
+		describe<T>(collect_all_field_names([&] (const char *name, bool local_first) {
+			if (!first || !local_first)
 				output += ',';
-			output += "t0."; output += name;
-		}));
-		describe<T2>(collect_all_field_names([&] (const char *name, bool /*first*/) {
-			output += ",t1."; output += name;
+			table_alias<index>(output), output += '.', output += name;
 		}));
 	}
 
-	template <typename T1, typename T2, typename T3>
-	inline void format_select_list(std::string &output, std::tuple<T1, T2, T3> *)
+	template <unsigned int index, typename T1, typename T2>
+	inline void format_select_list_tuple(std::string &output, bool first, std::tuple<T1, T2> *)
 	{
-		describe<T1>(collect_all_field_names([&] (const char *name, bool first) {
-			if (!first)
-				output += ',';
-			output += "t0."; output += name;
-		}));
-		describe<T2>(collect_all_field_names([&] (const char *name, bool /*first*/) {
-			output += ",t1."; output += name;
-		}));
-		describe<T3>(collect_all_field_names([&] (const char *name, bool /*first*/) {
-			output += ",t2."; output += name;
-		}));
+		format_select_list_prefixed<index, T1>(output, first);
+		format_select_list_prefixed<index + 1, T2>(output, false);
 	}
+
+	template <unsigned int index, typename T, typename... RestT>
+	inline void format_select_list_tuple(std::string &output, bool first, std::tuple<T, RestT...> *)
+	{
+		format_select_list_prefixed<index, T>(output, first);
+		format_select_list_tuple<index + 1>(output, false, static_cast<std::tuple<RestT...> *>(nullptr));
+	}
+
+	template <typename... T>
+	inline void format_select_list(std::string &output, std::tuple<T...> *)
+	{	format_select_list_tuple<0>(output, true, static_cast<std::tuple<T...> *>(nullptr));	}
 
 
 	template <typename T, typename F>
