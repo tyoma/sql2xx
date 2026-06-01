@@ -22,6 +22,7 @@
 
 #include "binding.h"
 #include "format.h"
+#include "index_sequence.h"
 #include "misc.h"
 #include "types.h"
 
@@ -112,25 +113,24 @@ namespace sql2xx
 		describe<T>(rr);
 	}
 
-	template <typename T1, typename T2>
-	inline void read_field(std::tuple<T1, T2> &record, statement &statement_)
+	inline void read_field_tuple(statement &, int)
+	{	}
+
+	template <typename T, typename... Ts>
+	inline void read_field_tuple(statement &statement_, int index, T &first, Ts &... rest)
 	{
-		record_reader<T1> rr0 = {	std::get<0>(record), statement_, 0	};
-		describe<T1>(rr0);
-		record_reader<T2> rr1 = {	std::get<1>(record), statement_, rr0.index	};
-		describe<T2>(rr1);
+		record_reader<T> rr = {	first, statement_, index	};
+		describe<T>(rr);
+		read_field_tuple(statement_, rr.index, rest...);
 	}
 
-	template <typename T1, typename T2, typename T3>
-	inline void read_field(std::tuple<T1, T2, T3> &record, statement &statement_)
-	{
-		record_reader<T1> rr0 = {	std::get<0>(record), statement_, 0	};
-		describe<T1>(rr0);
-		record_reader<T2> rr1 = {	std::get<1>(record), statement_, rr0.index	};
-		describe<T2>(rr1);
-		record_reader<T3> rr2 = {	std::get<2>(record), statement_, rr1.index	};
-		describe<T3>(rr2);
-	}
+	template <typename... Ts, std::size_t... Is>
+	inline void read_field_tuple(std::tuple<Ts...> &record, statement &statement_, index_sequence<Is...>)
+	{	read_field_tuple(statement_, 0, std::get<Is>(record)...);	}
+
+	template <typename... Ts>
+	inline void read_field(std::tuple<Ts...> &record, statement &statement_)
+	{	read_field_tuple(record, statement_, index_sequence_for<Ts...>{});	}
 
 
 	template <typename T>

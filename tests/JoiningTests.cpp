@@ -61,6 +61,16 @@ namespace sql2xx
 				{	return make_tuple(movie_id, actor_id, name) < make_tuple(rhs.movie_id, rhs.actor_id, rhs.name);	}
 			};
 
+			struct directory
+			{
+				int id;
+				nullable<int> parent_id;
+				string name;
+
+				bool operator <(const directory &rhs) const
+				{	return make_tuple(id, parent_id, name) < make_tuple(rhs.id, rhs.parent_id, rhs.name);	}
+			};
+
 
 
 			template <typename V>
@@ -89,6 +99,15 @@ namespace sql2xx
 				visitor(&character::actor_id, "actor_id");
 				visitor(&character::name, "name");
 			}
+
+			template <typename V>
+			void describe(V& visitor, directory *)
+			{
+				visitor("directories");
+				visitor(&directory::id, "id");
+				visitor(&directory::parent_id, "parent_id");
+				visitor(&directory::name, "name");
+			}
 		}
 
 		begin_test_suite( JoiningTests )
@@ -98,6 +117,7 @@ namespace sql2xx
 			vector<movie> movies;
 			vector<actor> actors;
 			vector<character> characters;
+            vector<directory> directories;
 
 			init( Init )
 			{
@@ -106,6 +126,7 @@ namespace sql2xx
 				tx->create_table<movie>();
 				tx->create_table<actor>();
 				tx->create_table<character>();
+				tx->create_table<directory>();
 
 				movies = plural
 					+ movie::make(0, "Heat", 1995)
@@ -129,6 +150,17 @@ namespace sql2xx
 					+ character::make(movies[2].id, actors[2].id, "Maverick")
 					+ character::make(movies[2].id, actors[3].id, "Ice");
 				write_all(*tx, characters);
+
+				directories = plural
+					+ directory { 1, nullable<int>(), "root" }
+					+ directory { 2, nullable<int>(1), "subdir1" }
+					+ directory { 3, nullable<int>(1), "subdir2" }
+					+ directory { 4, nullable<int>(2), "subdir11" }
+					+ directory { 5, nullable<int>(4), "subdir111" }
+					+ directory { 6, nullable<int>(3), "subdir21" }
+					+ directory { 7, nullable<int>(3), "subdir22" }
+					+ directory { 8, nullable<int>(7), "subdir221" };
+				write_all(*tx, directories);
 			}
 
 
@@ -217,6 +249,34 @@ namespace sql2xx
 				assert_equivalent(plural
 					+ make_tuple(actors[0], movies[0], characters[0])
 					+ make_tuple(actors[0], movies[1], characters[3]), AlPacinoMovies);
+			}
+
+
+			test( LongNestedStructureCanBeReadWithJoins )
+			{
+				// INIT / ACT
+				auto paths3 = read_all(tx->select< tuple<directory, directory, directory> >(
+					is_null(c<0>(&directory::parent_id)) && c<0>(&directory::id) == c<1>(&directory::parent_id)
+							&& c<1>(&directory::id) == c<2>(&directory::parent_id)
+				));
+
+				// ASSERT
+				assert_equivalent(plural
+					+ make_tuple(directories[0], directories[1], directories[3])
+					+ make_tuple(directories[0], directories[2], directories[5])
+					+ make_tuple(directories[0], directories[2], directories[6]), paths3);
+
+				// INIT / ACT
+				auto paths4 = read_all(tx->select< tuple<directory, directory, directory, directory> >(
+					is_null(c<0>(&directory::parent_id)) && c<0>(&directory::id) == c<1>(&directory::parent_id)
+						&& c<1>(&directory::id) == c<2>(&directory::parent_id)
+						&& c<2>(&directory::id) == c<3>(&directory::parent_id)
+				));
+
+				// ASSERT
+				assert_equivalent(plural
+					+ make_tuple(directories[0], directories[1], directories[3], directories[4])
+					+ make_tuple(directories[0], directories[2], directories[6], directories[7]), paths4);
 			}
 		end_test_suite
 	}
